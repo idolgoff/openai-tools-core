@@ -27,7 +27,7 @@ A testing playground for OpenAI tools with Telegram bot integration.
 
 ## Project Structure
 
-```
+```bash
 ai-tools-playground/
 ├── .env                  # Environment variables (not in repo)
 ├── .env.example          # Example environment variables
