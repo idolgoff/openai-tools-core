@@ -17,6 +17,8 @@
 - [x] Develop Telegram bot integration
 - [x] Implement NLP for bot communications
 - [x] Add conversation history manager
+- [x] Fix conversation history manager to properly handle tool calls
+- [x] Fix logger handler duplication issue
 - [x] Implement development mode with auto-reload
 
 ## Testing Phase
