@@ -16,6 +16,8 @@
 - [x] Implement logging system
 - [x] Develop Telegram bot integration
 - [x] Implement NLP for bot communications
+- [x] Add conversation history manager
+- [x] Implement development mode with auto-reload
 
 ## Testing Phase
 

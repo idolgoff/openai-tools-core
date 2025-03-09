@@ -7,6 +7,8 @@ from openai import OpenAI
 
 from core.logger import get_logger, log_tool_execution
 from core.tools import TOOLS
+from core.history.manager import get_history_manager
+from core.history.models import MessageRole
 from utils.env import get_openai_api_key, get_openai_model
 
 # Get logger for this module
@@ -15,20 +17,39 @@ logger = get_logger(__name__)
 # Initialize OpenAI client
 client = OpenAI(api_key=get_openai_api_key())
 
+# Get history manager
+history_manager = get_history_manager()
 
-async def process_message(message: str) -> str:
+
+async def process_message(message: str, user_id: str = "default_user", conversation_id: Optional[str] = None) -> str:
     """
     Process a natural language message and execute the appropriate tool.
     
     Args:
         message: Natural language message from the user
+        user_id: ID of the user sending the message
+        conversation_id: Optional ID of the existing conversation
         
     Returns:
         Response message to send back to the user
     """
-    logger.info(f"Processing message: {message}")
+    logger.info(f"Processing message from user {user_id}: {message}")
     
     try:
+        # Get or create conversation
+        if not conversation_id:
+            conversation_id = history_manager.create_conversation(user_id)
+            # Add system message to set the context
+            history_manager.add_message(
+                conversation_id,
+                MessageRole.SYSTEM,
+                "You are an AI assistant that helps users manage projects. "
+                "Your task is to understand the user's intent and call the appropriate "
+                "function to handle their request."
+            )
+        
+        # Add user message to history
+        history_manager.add_message(conversation_id, MessageRole.USER, message)
         # Define available tools for the OpenAI model
         tools = [
             {
@@ -129,21 +150,23 @@ async def process_message(message: str) -> str:
             }
         ]
         
+        # Get conversation history for context
+        messages = history_manager.get_messages(conversation_id)
+        
         # Call OpenAI API to process the message
         response = client.chat.completions.create(
             model=get_openai_model(),
-            messages=[
-                {"role": "system", "content": "You are an AI assistant that helps users manage projects. "
-                                             "Your task is to understand the user's intent and call the appropriate "
-                                             "function to handle their request."},
-                {"role": "user", "content": message}
-            ],
+            messages=messages,
             tools=tools,
             tool_choice="auto"
         )
         
         # Extract the response content
         response_message = response.choices[0].message
+        
+        # Store assistant's response in history
+        if response_message.content:
+            history_manager.add_message(conversation_id, MessageRole.ASSISTANT, response_message.content)
         
         # Check if a tool call was made
         if response_message.tool_calls:
@@ -153,19 +176,44 @@ async def process_message(message: str) -> str:
             
             logger.info(f"Tool call detected: {function_name} with args: {function_args}")
             
+            # Store tool call in history
+            tool_call_content = f"Function: {function_name}\nArguments: {json.dumps(function_args, indent=2)}"
+            history_manager.add_message(
+                conversation_id, 
+                MessageRole.TOOL, 
+                tool_call_content,
+                metadata={"function_name": function_name, "function_args": function_args}
+            )
+            
             # Execute the tool
             if function_name in TOOLS:
                 result = TOOLS[function_name](**function_args)
                 
+                # Store tool result in history
+                result_content = json.dumps(result) if isinstance(result, dict) else str(result)
+                history_manager.add_message(
+                    conversation_id,
+                    MessageRole.TOOL,
+                    f"Result: {result_content}",
+                    metadata={"function_name": function_name, "result": result}
+                )
+                
                 # Generate a natural language response based on the tool result
                 nl_response = generate_nl_response(function_name, function_args, result)
+                
+                # Store final assistant response in history
+                history_manager.add_message(conversation_id, MessageRole.ASSISTANT, nl_response)
+                
                 return nl_response
             else:
+                error_msg = f"I'm sorry, I don't know how to perform that action: {function_name}"
+                history_manager.add_message(conversation_id, MessageRole.ASSISTANT, error_msg)
                 logger.warning(f"Unknown tool: {function_name}")
-                return "I'm sorry, I don't know how to perform that action."
+                return error_msg
         else:
             # No tool call was made, return the model's response
-            return response_message.content or "I'm not sure how to help with that."
+            response_content = response_message.content or "I'm not sure how to help with that."
+            return response_content
     
     except Exception as e:
         logger.error(f"Error processing message: {str(e)}", exc_info=True)
