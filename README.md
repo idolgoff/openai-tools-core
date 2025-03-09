@@ -25,6 +25,15 @@ A testing playground for OpenAI tools with Telegram bot integration.
 5. Create a `.env` file with your configuration (see `.env.example`)
 6. Run the application: `python src/main.py`
 
+## Development
+
+For development with auto-reload functionality:
+
+1. Make sure all dependencies are installed: `pip install -r requirements.txt`
+2. Run the development server: `python dev.py`
+3. The server will automatically restart when changes are detected in the `src` directory
+4. Press Ctrl+C to stop the development server
+
 ## Project Structure
 
 ```bash
