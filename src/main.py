@@ -4,9 +4,9 @@ import signal
 import sys
 from typing import Dict, Any, Optional
 
-from src.bot.telegram_bot import TelegramBot
-from src.core.logger import get_logger
-from src.utils.env import get_env
+from bot.telegram_bot import TelegramBot
+from core.logger import get_logger
+from utils.env import get_env
 
 # Get logger for this module
 logger = get_logger(__name__)

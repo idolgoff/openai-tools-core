@@ -11,8 +11,8 @@ from telegram.ext import (
     filters,
 )
 
-from src.core.logger import get_logger
-from src.utils.env import get_telegram_token
+from core.logger import get_logger
+from utils.env import get_telegram_token
 
 # Get logger for this module
 logger = get_logger(__name__)
@@ -86,7 +86,7 @@ class TelegramBot:
         logger.info(f"Received message from {user.id} ({user.username}): {message_text}")
         
         # Process message with NLP to determine intent
-        from src.bot.handlers import process_message
+        from bot.handlers import process_message
         response = await process_message(message_text)
         
         # Send response back to user

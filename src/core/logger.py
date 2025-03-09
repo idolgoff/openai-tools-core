@@ -5,7 +5,7 @@ from typing import Optional
 
 import colorlog
 
-from src.utils.env import get_log_level
+from utils.env import get_log_level
 
 # Create a color formatter
 formatter = colorlog.ColoredFormatter(

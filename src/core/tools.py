@@ -2,7 +2,7 @@
 from typing import Dict, List, Optional, Union
 import uuid
 
-from src.core.logger import log_tool_execution
+from core.logger import log_tool_execution
 
 # In-memory storage for projects
 PROJECTS: Dict[str, Dict[str, str]] = {}

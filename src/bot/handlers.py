@@ -5,9 +5,9 @@ from typing import Dict, Any, Optional, List, Union
 import openai
 from openai import OpenAI
 
-from src.core.logger import get_logger, log_tool_execution
-from src.core.tools import TOOLS
-from src.utils.env import get_openai_api_key, get_openai_model
+from core.logger import get_logger, log_tool_execution
+from core.tools import TOOLS
+from utils.env import get_openai_api_key, get_openai_model
 
 # Get logger for this module
 logger = get_logger(__name__)
