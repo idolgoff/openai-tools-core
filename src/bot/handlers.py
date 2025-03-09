@@ -170,46 +170,89 @@ async def process_message(message: str, user_id: str = "default_user", conversat
         
         # Check if a tool call was made
         if response_message.tool_calls:
-            tool_call = response_message.tool_calls[0]
-            function_name = tool_call.function.name
-            function_args = json.loads(tool_call.function.arguments)
-            
-            logger.info(f"Tool call detected: {function_name} with args: {function_args}")
-            
-            # Store tool call in history
-            tool_call_content = f"Function: {function_name}\nArguments: {json.dumps(function_args, indent=2)}"
-            history_manager.add_message(
-                conversation_id, 
-                MessageRole.TOOL, 
-                tool_call_content,
-                metadata={"function_name": function_name, "function_args": function_args}
-            )
-            
-            # Execute the tool
-            if function_name in TOOLS:
-                result = TOOLS[function_name](**function_args)
+            # Process each tool call
+            for tool_call in response_message.tool_calls:
+                function_name = tool_call.function.name
+                function_args = json.loads(tool_call.function.arguments)
+                tool_call_id = tool_call.id
                 
-                # Store tool result in history
-                result_content = json.dumps(result) if isinstance(result, dict) else str(result)
+                logger.info(f"Tool call detected: {function_name} with args: {function_args}, id: {tool_call_id}")
+                
+                # Store tool call in history
+                tool_call_content = f"Function: {function_name}\nArguments: {json.dumps(function_args, indent=2)}"
                 history_manager.add_message(
-                    conversation_id,
-                    MessageRole.TOOL,
-                    f"Result: {result_content}",
-                    metadata={"function_name": function_name, "result": result}
+                    conversation_id, 
+                    MessageRole.TOOL, 
+                    tool_call_content,
+                    metadata={
+                        "name": function_name,  # Changed from function_name to name for consistency
+                        "arguments": function_args,
+                        "tool_call_id": tool_call_id
+                    }
                 )
+            
+            # Process and execute each tool call
+            responses = []
+            
+            for tool_call in response_message.tool_calls:
+                function_name = tool_call.function.name
+                function_args = json.loads(tool_call.function.arguments)
+                tool_call_id = tool_call.id
                 
-                # Generate a natural language response based on the tool result
-                nl_response = generate_nl_response(function_name, function_args, result)
-                
-                # Store final assistant response in history
-                history_manager.add_message(conversation_id, MessageRole.ASSISTANT, nl_response)
-                
-                return nl_response
-            else:
-                error_msg = f"I'm sorry, I don't know how to perform that action: {function_name}"
-                history_manager.add_message(conversation_id, MessageRole.ASSISTANT, error_msg)
-                logger.warning(f"Unknown tool: {function_name}")
-                return error_msg
+                if function_name in TOOLS:
+                    try:
+                        # Execute the tool
+                        result = TOOLS[function_name](**function_args)
+                        
+                        # Format the result
+                        result_content = json.dumps(result) if isinstance(result, dict) else str(result)
+                        
+                        # Store tool result in history
+                        history_manager.add_message(
+                            conversation_id,
+                            MessageRole.TOOL,
+                            result_content,
+                            metadata={
+                                "name": function_name,
+                                "arguments": function_args,
+                                "result": result,
+                                "tool_call_id": tool_call_id
+                            }
+                        )
+                        
+                        # Generate a natural language response for this tool call
+                        tool_response = generate_nl_response(function_name, function_args, result)
+                        responses.append(tool_response)
+                    except Exception as e:
+                        logger.error(f"Error executing tool {function_name}: {str(e)}")
+                        error_result = f"Error: {str(e)}"
+                        
+                        # Store error in history
+                        history_manager.add_message(
+                            conversation_id,
+                            MessageRole.TOOL,
+                            error_result,
+                            metadata={
+                                "name": function_name,
+                                "arguments": function_args,
+                                "error": str(e),
+                                "tool_call_id": tool_call_id
+                            }
+                        )
+                        
+                        responses.append(f"Error executing {function_name}: {str(e)}")
+                else:
+                    error_msg = f"Unknown tool: {function_name}"
+                    logger.warning(error_msg)
+                    responses.append(error_msg)
+            
+            # Combine all responses
+            combined_response = "\n\n".join(responses)
+            
+            # Store final assistant response in history
+            history_manager.add_message(conversation_id, MessageRole.ASSISTANT, combined_response)
+            
+            return combined_response
         else:
             # No tool call was made, return the model's response
             response_content = response_message.content or "I'm not sure how to help with that."

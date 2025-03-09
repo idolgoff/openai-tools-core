@@ -154,7 +154,50 @@ class HistoryManager:
             return []
         
         # Convert to OpenAI format
-        return [{"role": msg.role.value, "content": msg.content} for msg in conversation.messages]
+        formatted_messages = []
+        last_assistant_with_tool_calls = None
+        
+        for i, msg in enumerate(conversation.messages):
+            if msg.role == MessageRole.TOOL:
+                # For tool messages, check if they're a response to a tool call
+                if last_assistant_with_tool_calls and msg.metadata and "name" in msg.metadata:
+                    # Find the matching tool call ID from the last assistant message
+                    tool_call_id = None
+                    if last_assistant_with_tool_calls and "tool_calls" in last_assistant_with_tool_calls:
+                        for tool_call in last_assistant_with_tool_calls["tool_calls"]:
+                            if tool_call["function"]["name"] == msg.metadata["name"]:
+                                tool_call_id = tool_call["id"]
+                                break
+                    
+                    # Add as a function response to the OpenAI API
+                    function_response = {
+                        "role": MessageRole.TOOL,
+                        "name": msg.metadata["name"],
+                        "content": msg.content
+                    }
+                    
+                    # Add tool_call_id if found
+                    if tool_call_id:
+                        function_response["tool_call_id"] = tool_call_id
+                        
+                    formatted_messages.append(function_response)
+            elif msg.role == MessageRole.ASSISTANT and msg.metadata and "tool_calls" in msg.metadata:
+                # For assistant messages with tool calls
+                message_dict = {
+                    "role": MessageRole.ASSISTANT,
+                    "content": msg.content or "",
+                    "tool_calls": msg.metadata["tool_calls"]
+                }
+                formatted_messages.append(message_dict)
+                last_assistant_with_tool_calls = message_dict
+            else:
+                # Regular message types (system, user, assistant without tool calls)
+                formatted_messages.append({
+                    "role": msg.role.value,
+                    "content": msg.content
+                })
+        
+        return formatted_messages
     
     def list_conversations(self, user_id: Optional[str] = None) -> List[ConversationSummary]:
         """

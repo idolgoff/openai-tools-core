@@ -37,12 +37,14 @@ def get_logger(name: Optional[str] = None) -> logging.Logger:
     log_level = getattr(logging, get_log_level().upper())
     logger.setLevel(log_level)
     
-    # Create a handler for console output
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(formatter)
-    
-    # Add the handler to the logger
-    logger.addHandler(handler)
+    # Only add a handler if the logger doesn't already have one
+    if not logger.handlers:
+        # Create a handler for console output
+        handler = logging.StreamHandler(sys.stdout)
+        handler.setFormatter(formatter)
+        
+        # Add the handler to the logger
+        logger.addHandler(handler)
     
     return logger
 
