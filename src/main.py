@@ -2,11 +2,13 @@
 import asyncio
 import signal
 import sys
-from typing import Dict, Any, Optional
+from dotenv import load_dotenv
+
+# Load environment variables from .env file at application startup
+load_dotenv()
 
 from bot.telegram_bot import TelegramBot
 from ai_tools_core.logger import get_logger
-from ai_tools_core.utils.env import get_env
 
 # Get logger for this module
 logger = get_logger(__name__)

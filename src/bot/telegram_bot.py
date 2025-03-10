@@ -13,7 +13,7 @@ from telegram.ext import (
 
 from ai_tools_core.logger import get_logger
 from ai_tools_core.history import get_history_manager
-from ai_tools_core.utils.env import get_telegram_token
+from bot.utils import get_telegram_token
 
 # Get logger for this module
 logger = get_logger(__name__)

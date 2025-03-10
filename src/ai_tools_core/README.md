@@ -8,7 +8,16 @@ A core library for AI tools and integrations. This package provides core functio
 ai_tools_core/
 ├── cli/               # Command-line interface tools
 ├── history/           # Conversation history management
-├── services/          # AI service integrations (OpenAI, etc.)
+│   ├── formatters.py  # Message formatters for different AI providers
+│   ├── manager.py     # Conversation history manager
+│   ├── models.py      # Data models for conversations and messages
+│   └── storage.py     # Storage backends for conversation history
+├── services/          # AI service integrations
+│   ├── openai_service.py        # OpenAI API integration
+│   ├── openai_message_service.py # OpenAI message handling
+│   └── tool_service.py          # Tool execution service
+├── utils/             # Utility functions
+│   └── env.py         # Environment variable utilities
 ├── tools.py           # Tool registry and implementations
 └── logger.py          # Logging utilities
 ```
@@ -16,13 +25,52 @@ ai_tools_core/
 ## Features
 
 - **Tool Registry**: Register and execute AI-powered tools with a unified interface
-- **History Management**: Store and retrieve conversation history
-- **AI Service Integration**: Interact with AI services like OpenAI
-- **Logging**: Structured logging with color formatting
+- **History Management**: Store and retrieve conversation history with multiple storage backends
+- **AI Service Integration**: Interact with AI services like OpenAI with proper error handling
+- **Message Formatting**: Format messages for different AI providers (OpenAI, Anthropic)
+- **Logging**: Structured logging with color formatting and tool execution tracking
 
-## Usage Examples
+## Installation
+
+```bash
+# Install from the repository
+pip install -e .
+
+# Or install directly from the package directory
+cd /path/to/ai_tools_core
+pip install .
+```
+
+## Environment Configuration
+
+The package uses environment variables for configuration. You can set these in your application or use a `.env` file in your project root.
+
+**Required environment variables:**
+
+```env
+OPENAI_API_KEY=your_openai_api_key
+```
+
+**Optional environment variables:**
+
+```env
+OPENAI_MODEL=gpt-4o-mini  # Default model to use
+LOG_LEVEL=INFO            # Logging level (DEBUG, INFO, WARNING, ERROR)
+```
+
+### Best Practices for Environment Variables
+
+While the package provides utilities for environment variable handling, it's generally better to:
+
+1. Configure your application to load environment variables at the application level, not within the package
+2. Pass configuration explicitly to the package components when possible
+3. Only use environment variables for development and testing; use more secure configuration methods for production
+
+## Detailed Usage Examples
 
 ### Tool Registry
+
+The `ToolRegistry` class provides a way to register and execute tools that can be used with AI models:
 
 ```python
 from ai_tools_core import ToolRegistry
@@ -30,32 +78,162 @@ from ai_tools_core import ToolRegistry
 # Create a tool registry
 registry = ToolRegistry()
 
-# Register a tool
-@registry.register(name="echo", description="Echo the input")
-def echo_tool(text: str) -> str:
-    return text
+# Register a simple tool with the decorator
+@registry.register()
+def calculate_sum(a: int, b: int) -> int:
+    """Calculate the sum of two numbers."""
+    return a + b
 
-# Execute a tool
-result = registry.execute_tool("echo", text="Hello, world!")
-print(result)  # Output: Hello, world!
+# Register a tool with custom name and description
+@registry.register(name="multiply", description="Multiply two numbers together")
+def multiply_numbers(a: int, b: int) -> int:
+    return a * b
+
+# Execute a tool by name with keyword arguments
+result = registry.execute_tool("calculate_sum", a=5, b=3)
+print(result)  # Output: 8
+
+# Get OpenAI-compatible tool schemas
+schemas = registry.get_openai_schemas()
+```
+
+### Conversation History Management
+
+The history module provides a way to store and retrieve conversation history:
+
+```python
+from ai_tools_core.history import get_history_manager
+from ai_tools_core.history import MessageRole
+
+# Get the history manager (singleton)
+history_manager = get_history_manager()
+
+# Create a new conversation
+user_id = "user123"
+conversation_id = history_manager.create_conversation(user_id)
+
+# Add messages to the conversation
+history_manager.add_message(conversation_id, MessageRole.SYSTEM, 
+                           "You are a helpful assistant.")
+history_manager.add_message(conversation_id, MessageRole.USER, 
+                           "Hello, how are you?")
+history_manager.add_message(conversation_id, MessageRole.ASSISTANT, 
+                           "I'm doing well, thank you for asking!")
+
+# Get the conversation
+conversation = history_manager.get_conversation(conversation_id)
+
+# Format messages for OpenAI
+from ai_tools_core.history import create_message_formatter
+formatter = create_message_formatter("openai")
+openai_messages = formatter.format_messages(conversation)
+
+# List conversations for a user
+conversations = history_manager.list_conversations(user_id)
+```
+
+### OpenAI Service Integration
+
+The OpenAI service provides a way to interact with the OpenAI API:
+
+```python
+from ai_tools_core.services import get_openai_service
+from ai_tools_core.services import get_tool_service
+
+# Get the OpenAI service (singleton)
+openai_service = get_openai_service()
+
+# Generate a response
+messages = [
+    {"role": "system", "content": "You are a helpful assistant."},
+    {"role": "user", "content": "Tell me a joke about programming."}
+]
+response = openai_service.generate_response(messages)
+print(response)
+
+# Process messages with tools
+tool_service = get_tool_service()
+tools = [...] # Your tool schemas
+response = tool_service.process_with_tools(messages, tools)
 ```
 
 ### Logging
 
-```python
-from ai_tools_core import get_logger
+The logging module provides structured logging with color formatting:
 
-# Get a logger
+```python
+from ai_tools_core import get_logger, log_tool_execution
+
+# Get a logger for your module
 logger = get_logger(__name__)
 
-# Log messages
+# Log messages with different levels
+logger.debug("This is a debug message")
 logger.info("This is an info message")
+logger.warning("This is a warning message")
 logger.error("This is an error message")
+
+# Log tool execution (automatically tracks execution time)
+with log_tool_execution(logger, "calculate_sum", {"a": 5, "b": 3}):
+    result = 5 + 3
 ```
 
-## Installation
+## Advanced Usage
 
-```bash
-# Install from the repository
-pip install -e .
+### Custom Storage Backends
+
+You can create custom storage backends for conversation history:
+
+```python
+from ai_tools_core.history.storage import StorageBackend
+from ai_tools_core.history.models import Conversation, ConversationSummary
+
+class CustomStorageBackend(StorageBackend):
+    def save_conversation(self, conversation: Conversation) -> None:
+        # Implement your storage logic
+        pass
+        
+    def get_conversation(self, conversation_id: str) -> Conversation:
+        # Implement your retrieval logic
+        pass
+        
+    def list_conversations(self, user_id: str) -> List[ConversationSummary]:
+        # Implement your listing logic
+        pass
+        
+    # Implement other required methods
 ```
+
+### Custom Message Formatters
+
+You can create custom message formatters for different AI providers:
+
+```python
+from ai_tools_core.history.formatters import MessageFormatter
+from ai_tools_core.history.models import Conversation
+
+class CustomMessageFormatter(MessageFormatter):
+    def format_messages(self, conversation: Conversation) -> List[Dict[str, Any]]:
+        # Implement your formatting logic
+        formatted_messages = []
+        for msg in conversation.messages:
+            # Format each message
+            formatted_messages.append({
+                "role": msg.role.value,
+                "content": msg.content
+                # Add any other fields needed
+            })
+        return formatted_messages
+```
+
+## Best Practices
+
+1. **Separation of Concerns**: Keep your business logic separate from the AI tools core
+2. **Error Handling**: Always handle errors from AI services gracefully
+3. **Token Management**: Be aware of token limits when working with AI models
+4. **Security**: Never hardcode API keys; use environment variables or secure vaults
+5. **Testing**: Write tests for your tools and services
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
