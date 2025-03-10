@@ -33,6 +33,10 @@
   - [ ] Add configurable storage backends (memory, file, database)
   - [ ] Create pluggable message formatter system
   - [ ] Implement proper serialization/deserialization
+- [x] Decouple bot handlers from service logic
+  - [x] Create dedicated services for OpenAI API interactions
+  - [x] Extract message processing logic into a service layer
+  - [x] Improve error handling and response generation
 - [ ] Improve environment handling
   - [ ] Create configuration class with validation
   - [ ] Support multiple environment types (dev, test, prod)
