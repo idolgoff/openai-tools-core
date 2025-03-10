@@ -23,12 +23,12 @@
 
 ## Modularization Phase
 
-- [ ] Refactor tools system into a proper registry pattern
-  - [ ] Create a ToolRegistry class for managing tool registration and execution
-  - [ ] Extract business logic from tools.py into separate domain modules
-  - [ ] Implement decorator-based tool registration system
-  - [ ] Remove direct logging from tool implementations
-  - [ ] Add tool schema validation
+- [x] Refactor tools system into a proper registry pattern
+  - [x] Create a ToolRegistry class for managing tool registration and execution
+  - [x] Extract business logic from tools.py into separate domain modules
+  - [x] Implement decorator-based tool registration system
+  - [x] Remove direct logging from tool implementations
+  - [x] Add tool schema validation
 - [ ] Make history manager more reusable
   - [ ] Add configurable storage backends (memory, file, database)
   - [ ] Create pluggable message formatter system
