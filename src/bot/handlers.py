@@ -9,11 +9,10 @@ from core.logger import get_logger
 from bot.projects import (
     get_project_tools,
     get_project_tool_schemas,
-    generate_tool_response,
 )
 
 # Import services from core module
-from core.services import get_openai_service, get_openai_message_service
+from core.services import get_openai_service, get_openai_message_service, get_tool_service
 
 # Get logger for this module
 logger = get_logger(__name__)
@@ -21,6 +20,7 @@ logger = get_logger(__name__)
 # Get service instances
 openai_service = get_openai_service()
 openai_message_service = get_openai_message_service()
+tool_service = get_tool_service()
 
 
 async def process_message(
@@ -68,117 +68,21 @@ async def process_message(
 
         # Check if a tool call was made
         if response_message.tool_calls:
-            # Process each tool call
-            for tool_call in response_message.tool_calls:
-                function_name = tool_call.function.name
-                function_args = json.loads(tool_call.function.arguments)
-                tool_call_id = tool_call.id
-
-                logger.info(
-                    f"Tool call detected: {function_name} with args: {function_args}, id: {tool_call_id}"
-                )
-
-                # Store tool call in history
-                openai_message_service.add_tool_call_message(
-                    conversation_id, function_name, function_args, tool_call_id
-                )
-
-            # Process and execute each tool call
-            structured_responses = []
-
-            for tool_call in response_message.tool_calls:
-                function_name = tool_call.function.name
-                function_args = json.loads(tool_call.function.arguments)
-                tool_call_id = tool_call.id
-
-                # Get the project tools dictionary
-                project_tools = get_project_tools()
-
-                if function_name in project_tools:
-                    try:
-                        # Execute the tool
-                        result = project_tools[function_name](**function_args)
-
-                        # Store tool result in history
-                        openai_message_service.add_tool_result_message(
-                            conversation_id,
-                            function_name,
-                            function_args,
-                            result,
-                            tool_call_id,
-                        )
-
-                        # Get structured response data for this tool call
-                        structured_response = generate_tool_response(
-                            function_name, function_args, result
-                        )
-                        structured_responses.append(structured_response)
-
-                    except Exception as e:
-                        logger.error(f"Error executing tool {function_name}: {str(e)}")
-
-                        # Store error in history
-                        openai_message_service.add_tool_error_message(
-                            conversation_id,
-                            function_name,
-                            function_args,
-                            str(e),
-                            tool_call_id,
-                        )
-
-                        # Add error to structured responses
-                        error_response = {
-                            "tool": function_name,
-                            "status": "error",
-                            "error": str(e),
-                            "args": function_args,
-                        }
-                        structured_responses.append(error_response)
-                else:
-                    error_message = f"Unknown tool: {function_name}"
-                    logger.error(error_message)
-
-                    # Store error in history
-                    openai_message_service.add_tool_error_message(
-                        conversation_id,
-                        function_name,
-                        function_args,
-                        error_message,
-                        tool_call_id,
-                    )
-
-                    # Add unknown tool error to structured responses
-                    error_response = {
-                        "tool": function_name,
-                        "status": "error",
-                        "error": error_message,
-                        "args": function_args,
-                    }
-                    structured_responses.append(error_response)
-
-            # If we have structured responses, generate a single natural language response
-            responses = []
-            if structured_responses:
-                # Add structured responses to history for the OpenAI model to use
-                openai_message_service.add_system_message_with_tool_responses(
-                    conversation_id, structured_responses
-                )
-
-                # Get updated conversation messages
-                updated_messages = openai_message_service.get_conversation_messages(
-                    conversation_id
-                )
-
-                # Generate a natural language response for all tools
-                nl_content = openai_service.generate_response(updated_messages)
-                responses = [nl_content]  # Single response for all tools
-
-            # Combine all responses
-            combined_response = "\n\n".join(responses)
-
-            # Store final assistant response in history
-            openai_message_service.add_assistant_message(conversation_id, combined_response)
-
+            logger.info(f"Processing {len(response_message.tool_calls)} tool calls")
+            
+            # Get the project tools dictionary
+            project_tools = get_project_tools()
+            
+            # Use the tool service to process all tool calls
+            # This handles executing tools, storing results in history, and generating responses
+            combined_response = tool_service.process_tool_calls(
+                conversation_id,
+                response_message.tool_calls,
+                project_tools,
+                # Pass the response generator function
+                lambda messages: openai_service.generate_response(messages)
+            )
+            
             return combined_response
         else:
             # No tool call was made, return the model's response
@@ -192,5 +96,6 @@ async def process_message(
         return "I encountered an error while processing your request. Please try again."
 
 
-# Note: The message handling logic has been moved to the OpenAIMessageService class
-# and the OpenAI API interaction has been moved to the OpenAIService class
+# Note: The message handling logic has been moved to the OpenAIMessageService class,
+# the OpenAI API interaction has been moved to the OpenAIService class,
+# and the tool execution logic has been moved to the ToolService class

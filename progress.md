@@ -37,6 +37,7 @@
   - [x] Create dedicated services for OpenAI API interactions
   - [x] Extract message processing logic into a service layer
   - [x] Improve error handling and response generation
+  - [x] Create ToolService to handle tool execution and processing
 - [ ] Improve environment handling
   - [ ] Create configuration class with validation
   - [ ] Support multiple environment types (dev, test, prod)
