@@ -32,6 +32,7 @@
 - [x] Make history manager more reusable
   - [x] Add configurable storage backends (memory, file, database)
   - [x] Create pluggable message formatter system
+  - [x] Implement token counting and context limiting
   - [ ] Implement proper serialization/deserialization
 - [x] Decouple bot handlers from service logic
   - [x] Create dedicated services for OpenAI API interactions
