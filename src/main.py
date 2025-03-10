@@ -5,8 +5,8 @@ import sys
 from typing import Dict, Any, Optional
 
 from bot.telegram_bot import TelegramBot
-from core.logger import get_logger
-from utils.env import get_env
+from ai_tools_core.logger import get_logger
+from ai_tools_core.utils.env import get_env
 
 # Get logger for this module
 logger = get_logger(__name__)

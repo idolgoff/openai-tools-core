@@ -11,6 +11,39 @@ The ultimate sandbox for developers working with OpenAI's function calling and t
 - 📝 **Comprehensive Logging**: Monitor tool execution with detailed, non-duplicative logs
 - 🔄 **Hot Reload Development**: Rapid iteration with auto-reloading development server
 
+## 📦 Package Structure
+
+The project is organized as a proper Python package for easy installation and reuse:
+
+```text
+ai_tools_core/           # Core package
+├── __init__.py          # Public API exports
+├── tools.py             # Tool registry implementation
+├── logger.py            # Logging utilities
+├── cli/                 # Command-line interface
+├── history/             # Conversation history management
+├── services/            # AI service integrations
+└── utils/               # Utility functions
+```
+
+### Installation
+
+You can install the package directly from the repository:
+
+```bash
+pip install -e .
+```
+
+Or with extra dependencies:
+
+```bash
+# For development
+pip install -e ".[dev]"
+
+# For Telegram bot integration
+pip install -e ".[telegram]"
+```
+
 ## 🛠️ Why Use This Playground?
 
 Developing with OpenAI's tools API can be challenging. This playground provides:

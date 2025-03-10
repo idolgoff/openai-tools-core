@@ -9,7 +9,7 @@ function calling API.
 import uuid
 from typing import Dict, List, Optional, Union, Any
 
-from core.tools import ToolRegistry
+from ai_tools_core import ToolRegistry
 
 # Create a tool registry for project management
 tool_registry = ToolRegistry()

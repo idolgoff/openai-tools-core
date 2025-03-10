@@ -3,7 +3,7 @@
 import json
 from typing import Dict, Any, Optional, List, Union
 
-from core.logger import get_logger
+from ai_tools_core.logger import get_logger
 
 # Import project tools and schemas
 from bot.projects import (
@@ -11,8 +11,8 @@ from bot.projects import (
     get_project_tool_schemas,
 )
 
-# Import services from core module
-from core.services import get_openai_service, get_openai_message_service, get_tool_service
+# Import services from ai_tools_core package
+from ai_tools_core.services import get_openai_service, get_openai_message_service, get_tool_service
 
 # Get logger for this module
 logger = get_logger(__name__)
