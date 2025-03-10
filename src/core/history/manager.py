@@ -8,6 +8,8 @@ from typing import Dict, List, Optional, Any, Union
 
 from core.logger import get_logger
 from core.history.models import Conversation, Message, MessageRole, ConversationSummary
+from core.history.storage import StorageBackend, create_storage_backend
+from core.history.formatters import MessageFormatter, create_message_formatter
 
 # Get logger for this module
 logger = get_logger(__name__)
@@ -21,21 +23,30 @@ HISTORY_DIR = os.path.join(PROJECT_ROOT, "data", "history")
 class HistoryManager:
     """Manager for conversation history."""
     
-    def __init__(self, history_dir: Optional[str] = None):
+    def __init__(self, 
+                 storage_type: str = "file", 
+                 formatter_type: str = "openai",
+                 history_dir: Optional[str] = None):
         """
         Initialize the history manager.
         
         Args:
-            history_dir: Directory for storing conversation history
+            storage_type: Type of storage backend to use ('memory' or 'file')
+            formatter_type: Type of message formatter to use ('openai' or 'anthropic')
+            history_dir: Directory for storing conversation history (only used for file storage)
         """
         self.history_dir = history_dir or HISTORY_DIR
         
-        # Create history directory if it doesn't exist
-        os.makedirs(self.history_dir, exist_ok=True)
+        # Initialize storage backend
+        storage_kwargs = {"storage_dir": self.history_dir} if storage_type == "file" else {}
+        self.storage = create_storage_backend(storage_type, **storage_kwargs)
         
-        logger.info(f"History manager initialized with directory: {self.history_dir}")
+        # Initialize message formatter
+        self.formatter = create_message_formatter(formatter_type)
         
-        # In-memory cache of active conversations
+        logger.info(f"History manager initialized with {storage_type} storage and {formatter_type} formatter")
+        
+        # In-memory cache of active conversations (used regardless of storage backend)
         self._active_conversations: Dict[str, Conversation] = {}
     
     def create_conversation(self, user_id: str, metadata: Optional[Dict[str, Any]] = None) -> str:
@@ -57,11 +68,11 @@ class HistoryManager:
             metadata=metadata or {}
         )
         
-        # Store in memory
+        # Store in memory cache
         self._active_conversations[conversation_id] = conversation
         
-        # Save to disk
-        self._save_conversation(conversation)
+        # Save to storage backend
+        self.storage.save_conversation(conversation)
         
         logger.info(f"Created conversation {conversation_id} for user {user_id}")
         
@@ -100,7 +111,7 @@ class HistoryManager:
         conversation.updated_at = datetime.now()
         
         # Save conversation
-        self._save_conversation(conversation)
+        self.save_conversation(conversation)
         
         logger.debug(f"Added {role} message to conversation {conversation_id}")
     
@@ -118,86 +129,40 @@ class HistoryManager:
         if conversation_id in self._active_conversations:
             return self._active_conversations[conversation_id]
         
-        # Try to load from disk
-        conversation_path = os.path.join(self.history_dir, f"{conversation_id}.json")
-        if not os.path.exists(conversation_path):
-            logger.warning(f"Conversation {conversation_id} not found on disk")
+        # Try to load from storage backend
+        conversation = self.storage.load_conversation(conversation_id)
+        if not conversation:
+            logger.warning(f"Conversation {conversation_id} not found in storage")
             return None
         
-        try:
-            with open(conversation_path, "r") as f:
-                conversation_data = json.load(f)
-            
-            # Convert to Conversation object
-            conversation = Conversation.model_validate(conversation_data)
-            
-            # Cache in memory
-            self._active_conversations[conversation_id] = conversation
-            
-            return conversation
-        except Exception as e:
-            logger.error(f"Error loading conversation {conversation_id}: {str(e)}", exc_info=True)
-            return None
+        # Cache in memory
+        self._active_conversations[conversation_id] = conversation
+        
+        return conversation
     
-    def get_messages(self, conversation_id: str) -> List[Dict[str, str]]:
+    def get_messages(self, conversation_id: str, formatter_type: Optional[str] = None) -> Any:
         """
-        Get messages from a conversation in a format suitable for OpenAI API.
+        Get messages from a conversation in a format suitable for the specified AI API.
         
         Args:
             conversation_id: ID of the conversation
+            formatter_type: Optional formatter type to override the default
             
         Returns:
-            List of messages in OpenAI format
+            Formatted messages for the specified AI API
         """
         conversation = self.get_conversation(conversation_id)
         if not conversation:
             return []
         
-        # Convert to OpenAI format
-        formatted_messages = []
-        last_assistant_with_tool_calls = None
+        # Use specified formatter or default
+        if formatter_type:
+            formatter = create_message_formatter(formatter_type)
+        else:
+            formatter = self.formatter
         
-        for i, msg in enumerate(conversation.messages):
-            if msg.role == MessageRole.TOOL:
-                # For tool messages, check if they're a response to a tool call
-                if last_assistant_with_tool_calls and msg.metadata and "name" in msg.metadata:
-                    # Find the matching tool call ID from the last assistant message
-                    tool_call_id = None
-                    if last_assistant_with_tool_calls and "tool_calls" in last_assistant_with_tool_calls:
-                        for tool_call in last_assistant_with_tool_calls["tool_calls"]:
-                            if tool_call["function"]["name"] == msg.metadata["name"]:
-                                tool_call_id = tool_call["id"]
-                                break
-                    
-                    # Add as a function response to the OpenAI API
-                    function_response = {
-                        "role": MessageRole.TOOL,
-                        "name": msg.metadata["name"],
-                        "content": msg.content
-                    }
-                    
-                    # Add tool_call_id if found
-                    if tool_call_id:
-                        function_response["tool_call_id"] = tool_call_id
-                        
-                    formatted_messages.append(function_response)
-            elif msg.role == MessageRole.ASSISTANT and msg.metadata and "tool_calls" in msg.metadata:
-                # For assistant messages with tool calls
-                message_dict = {
-                    "role": MessageRole.ASSISTANT,
-                    "content": msg.content or "",
-                    "tool_calls": msg.metadata["tool_calls"]
-                }
-                formatted_messages.append(message_dict)
-                last_assistant_with_tool_calls = message_dict
-            else:
-                # Regular message types (system, user, assistant without tool calls)
-                formatted_messages.append({
-                    "role": msg.role.value,
-                    "content": msg.content
-                })
-        
-        return formatted_messages
+        # Format messages using the appropriate formatter
+        return formatter.format_messages(conversation)
     
     def list_conversations(self, user_id: Optional[str] = None) -> List[ConversationSummary]:
         """
@@ -209,42 +174,8 @@ class HistoryManager:
         Returns:
             List of conversation summaries
         """
-        conversations = []
-        
-        # List all conversation files
-        for filename in os.listdir(self.history_dir):
-            if not filename.endswith(".json"):
-                continue
-            
-            try:
-                with open(os.path.join(self.history_dir, filename), "r") as f:
-                    conversation_data = json.load(f)
-                
-                # Skip if not matching user_id
-                if user_id and conversation_data.get("user_id") != user_id:
-                    continue
-                
-                # Create summary
-                messages = conversation_data.get("messages", [])
-                first_message_at = datetime.fromisoformat(messages[0]["timestamp"]) if messages else datetime.now()
-                last_message_at = datetime.fromisoformat(messages[-1]["timestamp"]) if messages else datetime.now()
-                
-                summary = ConversationSummary(
-                    id=conversation_data["id"],
-                    user_id=conversation_data["user_id"],
-                    message_count=len(messages),
-                    first_message_at=first_message_at,
-                    last_message_at=last_message_at
-                )
-                
-                conversations.append(summary)
-            except Exception as e:
-                logger.error(f"Error processing conversation file {filename}: {str(e)}", exc_info=True)
-        
-        # Sort by last message timestamp (newest first)
-        conversations.sort(key=lambda x: x.last_message_at, reverse=True)
-        
-        return conversations
+        # Delegate to storage backend
+        return self.storage.list_conversations(user_id)
     
     def delete_conversation(self, conversation_id: str) -> bool:
         """
@@ -256,60 +187,48 @@ class HistoryManager:
         Returns:
             True if successful, False otherwise
         """
-        # Remove from memory
+        # Remove from memory cache
         if conversation_id in self._active_conversations:
             del self._active_conversations[conversation_id]
         
-        # Remove from disk
-        conversation_path = os.path.join(self.history_dir, f"{conversation_id}.json")
-        if os.path.exists(conversation_path):
-            try:
-                os.remove(conversation_path)
-                logger.info(f"Deleted conversation {conversation_id}")
-                return True
-            except Exception as e:
-                logger.error(f"Error deleting conversation {conversation_id}: {str(e)}", exc_info=True)
-                return False
-        
-        logger.warning(f"Conversation {conversation_id} not found for deletion")
-        return False
+        # Delegate to storage backend
+        return self.storage.delete_conversation(conversation_id)
     
-    def _save_conversation(self, conversation: Conversation) -> None:
+    def save_conversation(self, conversation: Conversation) -> bool:
         """
-        Save a conversation to disk.
+        Save a conversation to storage.
         
         Args:
             conversation: Conversation to save
+            
+        Returns:
+            True if successful, False otherwise
         """
-        conversation_path = os.path.join(self.history_dir, f"{conversation.id}.json")
+        # Update in-memory cache
+        self._active_conversations[conversation.id] = conversation
         
-        try:
-            # Convert to JSON
-            conversation_data = conversation.model_dump(mode="json")
-            
-            # Save to disk
-            with open(conversation_path, "w") as f:
-                json.dump(conversation_data, f, indent=2)
-            
-            logger.debug(f"Saved conversation {conversation.id} to disk")
-        except Exception as e:
-            logger.error(f"Error saving conversation {conversation.id}: {str(e)}", exc_info=True)
+        # Delegate to storage backend
+        return self.storage.save_conversation(conversation)
 
 
 # Singleton instance
 _history_manager: Optional[HistoryManager] = None
 
 
-def get_history_manager() -> HistoryManager:
+def get_history_manager(storage_type: str = "file", formatter_type: str = "openai") -> HistoryManager:
     """
     Get the singleton history manager instance.
     
+    Args:
+        storage_type: Type of storage backend to use ('memory' or 'file')
+        formatter_type: Type of message formatter to use ('openai' or 'anthropic')
+        
     Returns:
         History manager instance
     """
     global _history_manager
     
     if _history_manager is None:
-        _history_manager = HistoryManager()
+        _history_manager = HistoryManager(storage_type=storage_type, formatter_type=formatter_type)
     
     return _history_manager

@@ -29,9 +29,9 @@
   - [x] Implement decorator-based tool registration system
   - [x] Remove direct logging from tool implementations
   - [x] Add tool schema validation
-- [ ] Make history manager more reusable
-  - [ ] Add configurable storage backends (memory, file, database)
-  - [ ] Create pluggable message formatter system
+- [x] Make history manager more reusable
+  - [x] Add configurable storage backends (memory, file, database)
+  - [x] Create pluggable message formatter system
   - [ ] Implement proper serialization/deserialization
 - [x] Decouple bot handlers from service logic
   - [x] Create dedicated services for OpenAI API interactions

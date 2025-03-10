@@ -21,7 +21,8 @@ class OpenAIMessageService:
 
     def __init__(self):
         """Initialize the message service."""
-        self.history_manager = get_history_manager()
+        # Explicitly use the OpenAI formatter for this service
+        self.history_manager = get_history_manager(storage_type="file", formatter_type="openai")
         self.openai_service = get_openai_service()
         logger.info("OpenAI message service initialized")
 
@@ -195,7 +196,8 @@ class OpenAIMessageService:
         Returns:
             List of messages in OpenAI format
         """
-        return self.history_manager.get_messages(conversation_id)
+        # Explicitly specify the OpenAI formatter to ensure correct format
+        return self.history_manager.get_messages(conversation_id, formatter_type="openai")
 
 
 # Singleton instance
