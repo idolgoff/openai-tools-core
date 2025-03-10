@@ -13,7 +13,7 @@ from utils.env import get_openai_api_key, get_openai_model
 
 # Import project tools and schemas
 from bot.projects import (
-    PROJECT_TOOLS,
+    get_project_tools,
     get_project_tool_schemas
 )
 
@@ -114,10 +114,13 @@ async def process_message(message: str, user_id: str = "default_user", conversat
                 function_args = json.loads(tool_call.function.arguments)
                 tool_call_id = tool_call.id
                 
-                if function_name in PROJECT_TOOLS:
+                # Get the project tools dictionary
+                project_tools = get_project_tools()
+                
+                if function_name in project_tools:
                     try:
                         # Execute the tool
-                        result = PROJECT_TOOLS[function_name](**function_args)
+                        result = project_tools[function_name](**function_args)
                         
                         # Format the result
                         result_content = json.dumps(result) if isinstance(result, dict) else str(result)

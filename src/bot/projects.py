@@ -153,17 +153,19 @@ def get_active_project() -> Union[Dict[str, str], None]:
     return get_active_project_tool()
 
 
-# Export the tools for use in other modules
-PROJECT_TOOLS = {
-    "list_projects_tool": list_projects_tool,
-    "delete_project_tool": delete_project_tool,
-    "switch_project_tool": switch_project_tool,
-    "create_project_tool": create_project_tool,
-    "get_project_details_tool": get_project_details_tool,
-    "get_active_project_tool": get_active_project_tool
-}
+# Functions to export tools and schemas
+def get_project_tools():
+    """Get a dictionary of all project management tools.
+    
+    Returns:
+        Dict mapping tool names to tool functions
+    """
+    return tool_registry.get_all_tools()
 
-# Export the tool schemas for OpenAI API
 def get_project_tool_schemas():
-    """Get OpenAI-compatible schemas for all project tools."""
+    """Get OpenAI-compatible schemas for all project tools.
+    
+    Returns:
+        List of tool schemas in OpenAI format
+    """
     return tool_registry.get_tool_schemas()
