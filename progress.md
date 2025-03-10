@@ -21,6 +21,29 @@
 - [x] Fix logger handler duplication issue
 - [x] Implement development mode with auto-reload
 
+## Modularization Phase
+
+- [ ] Refactor tools system into a proper registry pattern
+  - [ ] Create a ToolRegistry class for managing tool registration and execution
+  - [ ] Extract business logic from tools.py into separate domain modules
+  - [ ] Implement decorator-based tool registration system
+  - [ ] Remove direct logging from tool implementations
+  - [ ] Add tool schema validation
+- [ ] Make history manager more reusable
+  - [ ] Add configurable storage backends (memory, file, database)
+  - [ ] Create pluggable message formatter system
+  - [ ] Implement proper serialization/deserialization
+- [ ] Improve environment handling
+  - [ ] Create configuration class with validation
+  - [ ] Support multiple environment types (dev, test, prod)
+- [ ] Create proper package structure
+  - [ ] Reorganize code into installable package
+  - [ ] Add setup.py and package metadata
+  - [ ] Create clear public API interfaces
+- [ ] Implement dependency injection
+  - [ ] Remove singleton patterns where appropriate
+  - [ ] Create service container for managing dependencies
+
 ## Testing Phase
 
 - [ ] Unit tests for core functionality

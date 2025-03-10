@@ -6,10 +6,16 @@ import openai
 from openai import OpenAI
 
 from core.logger import get_logger, log_tool_execution
-from core.tools import TOOLS
+from core.tools import ToolRegistry
 from core.history.manager import get_history_manager
 from core.history.models import MessageRole
 from utils.env import get_openai_api_key, get_openai_model
+
+# Import project tools and schemas
+from bot.projects import (
+    PROJECT_TOOLS,
+    get_project_tool_schemas
+)
 
 # Get logger for this module
 logger = get_logger(__name__)
@@ -19,6 +25,8 @@ client = OpenAI(api_key=get_openai_api_key())
 
 # Get history manager
 history_manager = get_history_manager()
+
+# We don't need to create a tool registry here as we're using the one from projects.py
 
 
 async def process_message(message: str, user_id: str = "default_user", conversation_id: Optional[str] = None) -> str:
@@ -50,105 +58,12 @@ async def process_message(message: str, user_id: str = "default_user", conversat
         
         # Add user message to history
         history_manager.add_message(conversation_id, MessageRole.USER, message)
-        # Define available tools for the OpenAI model
-        tools = [
-            {
-                "type": "function",
-                "function": {
-                    "name": "list_projects",
-                    "description": "List all available projects",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {},
-                        "required": []
-                    }
-                }
-            },
-            {
-                "type": "function",
-                "function": {
-                    "name": "delete_project",
-                    "description": "Delete a project by ID",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "project_id": {
-                                "type": "string",
-                                "description": "ID of the project to delete"
-                            }
-                        },
-                        "required": ["project_id"]
-                    }
-                }
-            },
-            {
-                "type": "function",
-                "function": {
-                    "name": "switch_project",
-                    "description": "Switch to a project by ID",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "project_id": {
-                                "type": "string",
-                                "description": "ID of the project to switch to"
-                            }
-                        },
-                        "required": ["project_id"]
-                    }
-                }
-            },
-            {
-                "type": "function",
-                "function": {
-                    "name": "create_project",
-                    "description": "Create a new project",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "name": {
-                                "type": "string",
-                                "description": "Name of the project"
-                            },
-                            "description": {
-                                "type": "string",
-                                "description": "Description of the project"
-                            }
-                        },
-                        "required": ["name", "description"]
-                    }
-                }
-            },
-            {
-                "type": "function",
-                "function": {
-                    "name": "get_project_details",
-                    "description": "Get project details by ID",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "project_id": {
-                                "type": "string",
-                                "description": "ID of the project"
-                            }
-                        },
-                        "required": ["project_id"]
-                    }
-                }
-            },
-            {
-                "type": "function",
-                "function": {
-                    "name": "get_active_project",
-                    "description": "Get active project details",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {},
-                        "required": []
-                    }
-                }
-            }
-        ]
+        # No need to register tools here as they're already registered in projects.py
+        
+        # Use the tools exported from projects.py
+        
+        # Get tool schemas from projects.py
+        tools = get_project_tool_schemas()
         
         # Get conversation history for context
         messages = history_manager.get_messages(conversation_id)
@@ -199,10 +114,10 @@ async def process_message(message: str, user_id: str = "default_user", conversat
                 function_args = json.loads(tool_call.function.arguments)
                 tool_call_id = tool_call.id
                 
-                if function_name in TOOLS:
+                if function_name in PROJECT_TOOLS:
                     try:
                         # Execute the tool
-                        result = TOOLS[function_name](**function_args)
+                        result = PROJECT_TOOLS[function_name](**function_args)
                         
                         # Format the result
                         result_content = json.dumps(result) if isinstance(result, dict) else str(result)
@@ -276,33 +191,33 @@ def generate_nl_response(tool_name: str, args: Dict[str, Any], result: Optional[
         Natural language response
     """
     if result is None:
-        if tool_name == "list_projects":
+        if tool_name == "list_projects_tool":
             return "You don't have any projects yet. Would you like to create one?"
-        elif tool_name == "delete_project":
+        elif tool_name == "delete_project_tool":
             return f"I couldn't find a project with ID {args.get('project_id')}."
-        elif tool_name == "switch_project":
+        elif tool_name == "switch_project_tool":
             return f"I couldn't find a project with ID {args.get('project_id')}."
-        elif tool_name == "get_project_details":
+        elif tool_name == "get_project_details_tool":
             return f"I couldn't find a project with ID {args.get('project_id')}."
-        elif tool_name == "get_active_project":
-            return "You don't have an active project. Would you like to create one or switch to an existing one?"
+        elif tool_name == "get_active_project_tool":
+            return "There is no active project. Would you like to create one or switch to an existing one?"
         else:
             return "I couldn't complete that action. Please try again."
     
-    if tool_name == "list_projects":
+    if tool_name == "list_projects_tool":
         return f"Here are your projects:\n\n{result}"
-    elif tool_name == "delete_project":
+    elif tool_name == "delete_project_tool":
         return result
-    elif tool_name == "switch_project":
+    elif tool_name == "switch_project_tool":
         return result
-    elif tool_name == "create_project":
+    elif tool_name == "create_project_tool":
         return f"I've created a new project with ID: {result}"
-    elif tool_name == "get_project_details":
+    elif tool_name == "get_project_details_tool":
         if isinstance(result, dict):
             active_status = " (ACTIVE)" if result.get("is_active") else ""
             return f"Project details:{active_status}\nID: {result.get('id')}\nName: {result.get('name')}\nDescription: {result.get('description')}"
         return str(result)
-    elif tool_name == "get_active_project":
+    elif tool_name == "get_active_project_tool":
         if isinstance(result, dict):
             return f"Your active project is:\nID: {result.get('id')}\nName: {result.get('name')}\nDescription: {result.get('description')}"
         return str(result)
