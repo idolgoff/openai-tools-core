@@ -12,6 +12,7 @@ from openai import OpenAI
 
 from core.logger import get_logger
 from utils.env import get_openai_api_key, get_openai_model
+from core.history.models import MessageRole
 
 # Get logger for this module
 logger = get_logger(__name__)
@@ -163,6 +164,14 @@ class OpenAIService:
         else:
             other_messages = messages.copy()
 
+        # Check if system messages alone exceed the token limit
+        system_tokens = self.count_tokens(system_messages)
+        if system_tokens > max_tokens:
+            logger.warning(f"System messages alone exceed token limit ({system_tokens} > {max_tokens})")
+            # Keep only the most recent system messages if they exceed the limit
+            while system_messages and self.count_tokens(system_messages) > max_tokens:
+                system_messages.pop(0)
+                
         # Start removing older messages (from the beginning) until we're under the limit
         limited_messages = other_messages.copy()
 
