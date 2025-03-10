@@ -5,8 +5,7 @@ from typing import Dict, Any, Optional, List, Union
 import openai
 from openai import OpenAI
 
-from core.logger import get_logger, log_tool_execution
-from core.tools import ToolRegistry
+from core.logger import get_logger
 from core.history.manager import get_history_manager
 from core.history.models import MessageRole
 from utils.env import get_openai_api_key, get_openai_model
@@ -108,7 +107,7 @@ async def process_message(message: str, user_id: str = "default_user", conversat
                 )
             
             # Process and execute each tool call
-            responses = []
+            structured_responses = []
             
             for tool_call in response_message.tool_calls:
                 function_name = tool_call.function.name
@@ -139,9 +138,10 @@ async def process_message(message: str, user_id: str = "default_user", conversat
                             }
                         )
                         
-                        # Generate a natural language response for this tool call
-                        tool_response = generate_tool_response(function_name, function_args, result)
-                        responses.append(tool_response)
+                        # Get structured response data for this tool call
+                        structured_response = generate_tool_response(function_name, function_args, result)
+                        structured_responses.append(structured_response)
+                        
                     except Exception as e:
                         logger.error(f"Error executing tool {function_name}: {str(e)}")
                         error_result = f"Error: {str(e)}"
@@ -159,11 +159,63 @@ async def process_message(message: str, user_id: str = "default_user", conversat
                             }
                         )
                         
-                        responses.append(f"Error executing {function_name}: {str(e)}")
+                        # Add error to structured responses
+                        error_response = {
+                            "tool": function_name,
+                            "status": "error",
+                            "error": str(e),
+                            "args": function_args
+                        }
+                        structured_responses.append(error_response)
                 else:
-                    error_msg = f"Unknown tool: {function_name}"
-                    logger.warning(error_msg)
-                    responses.append(error_msg)
+                    error_message = f"Unknown tool: {function_name}"
+                    logger.error(error_message)
+                    
+                    # Store error in history
+                    history_manager.add_message(
+                        conversation_id,
+                        MessageRole.TOOL,
+                        error_message,
+                        metadata={
+                            "name": function_name,
+                            "arguments": function_args,
+                            "error": error_message,
+                            "tool_call_id": tool_call_id
+                        }
+                    )
+                    
+                    # Add unknown tool error to structured responses
+                    error_response = {
+                        "tool": function_name,
+                        "status": "error",
+                        "error": error_message,
+                        "args": function_args
+                    }
+                    structured_responses.append(error_response)
+            
+            # If we have structured responses, generate a single natural language response
+            responses = []
+            if structured_responses:
+                # Convert all structured responses to a single JSON string
+                all_responses_json = json.dumps(structured_responses)
+                
+                # Add structured responses to history for the OpenAI model to use
+                history_manager.add_message(
+                    conversation_id,
+                    MessageRole.SYSTEM,
+                    f"Tool response data: {all_responses_json}\n\nPlease format a SINGLE, COHERENT response to the user based on ALL this data. Avoid repetition. Respond in the same language the user is using."
+                )
+                
+                # Call OpenAI API once to generate a natural language response for all tools
+                nl_response = client.chat.completions.create(
+                    model=get_openai_model(),
+                    messages=history_manager.get_messages(conversation_id),
+                    max_tokens=300  # Increased token limit for combined response
+                )
+                
+                # Extract the response content
+                nl_content = nl_response.choices[0].message.content or "I processed your request."
+                responses = [nl_content]  # Single response for all tools
             
             # Combine all responses
             combined_response = "\n\n".join(responses)

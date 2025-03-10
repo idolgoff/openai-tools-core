@@ -170,8 +170,11 @@ def get_project_tool_schemas():
     """
     return tool_registry.get_tool_schemas()
 
-def generate_tool_response(tool_name: str, args: Dict[str, Any], result: Optional[Union[str, Dict]]) -> str:
-    """Generate a natural language response for a tool execution.
+def generate_tool_response(tool_name: str, args: Dict[str, Any], result: Optional[Union[str, Dict]]) -> Dict[str, Any]:
+    """Generate a structured response for a tool execution.
+    
+    Instead of returning formatted text, this function returns structured data
+    that can be used by the AI model to generate a response in any language.
     
     Args:
         tool_name: Name of the executed tool
@@ -179,40 +182,57 @@ def generate_tool_response(tool_name: str, args: Dict[str, Any], result: Optiona
         result: Tool execution result
         
     Returns:
-        Natural language response
+        Dictionary with structured response data
     """
-    # Handle None results (tool execution failed)
-    if result is None:
-        if tool_name == "list_projects_tool":
-            return "You don't have any projects yet. Would you like to create one?"
-        elif tool_name == "delete_project_tool":
-            return f"I couldn't find a project with ID {args.get('project_id')}."
-        elif tool_name == "switch_project_tool":
-            return f"I couldn't find a project with ID {args.get('project_id')}."
-        elif tool_name == "get_project_details_tool":
-            return f"I couldn't find a project with ID {args.get('project_id')}."
-        elif tool_name == "get_active_project_tool":
-            return "There is no active project. Would you like to create one or switch to an existing one?"
-        else:
-            return "I couldn't complete that action. Please try again."
+    # Base response structure
+    response = {
+        "tool": tool_name,
+        "status": "success" if result is not None else "error",
+        "data": result,
+        "args": args
+    }
     
-    # Handle successful results
+    # Add additional context based on the tool
     if tool_name == "list_projects_tool":
-        return f"Here are your projects:\n\n{result}"
+        response["context"] = {
+            "action": "list",
+            "entity": "projects",
+            "empty": result is None or result == ""
+        }
     elif tool_name == "delete_project_tool":
-        return result
+        response["context"] = {
+            "action": "delete",
+            "entity": "project",
+            "project_id": args.get('project_id'),
+            "found": result is not None
+        }
     elif tool_name == "switch_project_tool":
-        return result
+        response["context"] = {
+            "action": "switch",
+            "entity": "project",
+            "project_id": args.get('project_id'),
+            "found": result is not None
+        }
     elif tool_name == "create_project_tool":
-        return f"I've created a new project with ID: {result}"
+        response["context"] = {
+            "action": "create",
+            "entity": "project",
+            "name": args.get('name'),
+            "description": args.get('description'),
+            "project_id": result
+        }
     elif tool_name == "get_project_details_tool":
-        if isinstance(result, dict):
-            active_status = " (ACTIVE)" if result.get("is_active") else ""
-            return f"Project details:{active_status}\nID: {result.get('id')}\nName: {result.get('name')}\nDescription: {result.get('description')}"
-        return str(result)
+        response["context"] = {
+            "action": "get_details",
+            "entity": "project",
+            "project_id": args.get('project_id'),
+            "found": result is not None
+        }
     elif tool_name == "get_active_project_tool":
-        if isinstance(result, dict):
-            return f"Your active project is:\nID: {result.get('id')}\nName: {result.get('name')}\nDescription: {result.get('description')}"
-        return str(result)
-    else:
-        return str(result)
+        response["context"] = {
+            "action": "get_active",
+            "entity": "project",
+            "has_active": result is not None
+        }
+    
+    return response
