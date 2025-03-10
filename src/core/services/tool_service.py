@@ -212,9 +212,10 @@ class ToolService:
                 conversation_id, structured_responses
             )
 
-            # Get updated conversation messages
+            # Get updated conversation messages with token limiting
+            # Use a slightly lower token limit (3500) to leave room for the response
             updated_messages = self.openai_message_service.get_conversation_messages(
-                conversation_id
+                conversation_id, max_tokens=3500
             )
 
             # Generate a natural language response

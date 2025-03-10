@@ -186,18 +186,28 @@ class OpenAIMessageService:
             f"Tool response data: {all_responses_json}\n\nPlease format a SINGLE, COHERENT response to the user based on ALL this data. Avoid repetition. Respond in the same language the user is using.",
         )
 
-    def get_conversation_messages(self, conversation_id: str) -> List[Dict[str, Any]]:
+    def get_conversation_messages(self, conversation_id: str, max_tokens: int = 4000) -> List[Dict[str, Any]]:
         """
-        Get messages from a conversation.
+        Get messages from a conversation, limited by token count.
 
         Args:
             conversation_id: ID of the conversation
+            max_tokens: Maximum number of tokens to include in the context
 
         Returns:
-            List of messages in OpenAI format
+            List of messages in OpenAI format, limited by token count
         """
-        # Explicitly specify the OpenAI formatter to ensure correct format
-        return self.history_manager.get_messages(conversation_id, formatter_type="openai")
+        # Get all messages with the OpenAI formatter
+        all_messages = self.history_manager.get_messages(conversation_id, formatter_type="openai")
+        
+        # Limit messages by token count
+        limited_messages = self.openai_service.limit_messages_by_tokens(
+            messages=all_messages,
+            max_tokens=max_tokens,
+            keep_system_messages=True
+        )
+        
+        return limited_messages
 
 
 # Singleton instance

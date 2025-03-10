@@ -51,8 +51,9 @@ async def process_message(
         # Get tool schemas from projects.py
         tools = get_project_tool_schemas()
 
-        # Get conversation history for context
-        messages = openai_message_service.get_conversation_messages(conversation_id)
+        # Get conversation history for context with token limiting
+        # Use 4000 tokens as the default limit to ensure we stay within model's context window
+        messages = openai_message_service.get_conversation_messages(conversation_id, max_tokens=4000)
 
         # Call OpenAI API to process the message
         response = openai_service.process_with_tools(messages, tools)
