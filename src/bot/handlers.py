@@ -14,7 +14,8 @@ from utils.env import get_openai_api_key, get_openai_model
 # Import project tools and schemas
 from bot.projects import (
     get_project_tools,
-    get_project_tool_schemas
+    get_project_tool_schemas,
+    generate_tool_response
 )
 
 # Get logger for this module
@@ -139,7 +140,7 @@ async def process_message(message: str, user_id: str = "default_user", conversat
                         )
                         
                         # Generate a natural language response for this tool call
-                        tool_response = generate_nl_response(function_name, function_args, result)
+                        tool_response = generate_tool_response(function_name, function_args, result)
                         responses.append(tool_response)
                     except Exception as e:
                         logger.error(f"Error executing tool {function_name}: {str(e)}")
@@ -181,48 +182,4 @@ async def process_message(message: str, user_id: str = "default_user", conversat
         return "I encountered an error while processing your request. Please try again."
 
 
-def generate_nl_response(tool_name: str, args: Dict[str, Any], result: Optional[Union[str, Dict]]) -> str:
-    """
-    Generate a natural language response based on the tool result.
-    
-    Args:
-        tool_name: Name of the executed tool
-        args: Tool arguments
-        result: Tool execution result
-        
-    Returns:
-        Natural language response
-    """
-    if result is None:
-        if tool_name == "list_projects_tool":
-            return "You don't have any projects yet. Would you like to create one?"
-        elif tool_name == "delete_project_tool":
-            return f"I couldn't find a project with ID {args.get('project_id')}."
-        elif tool_name == "switch_project_tool":
-            return f"I couldn't find a project with ID {args.get('project_id')}."
-        elif tool_name == "get_project_details_tool":
-            return f"I couldn't find a project with ID {args.get('project_id')}."
-        elif tool_name == "get_active_project_tool":
-            return "There is no active project. Would you like to create one or switch to an existing one?"
-        else:
-            return "I couldn't complete that action. Please try again."
-    
-    if tool_name == "list_projects_tool":
-        return f"Here are your projects:\n\n{result}"
-    elif tool_name == "delete_project_tool":
-        return result
-    elif tool_name == "switch_project_tool":
-        return result
-    elif tool_name == "create_project_tool":
-        return f"I've created a new project with ID: {result}"
-    elif tool_name == "get_project_details_tool":
-        if isinstance(result, dict):
-            active_status = " (ACTIVE)" if result.get("is_active") else ""
-            return f"Project details:{active_status}\nID: {result.get('id')}\nName: {result.get('name')}\nDescription: {result.get('description')}"
-        return str(result)
-    elif tool_name == "get_active_project_tool":
-        if isinstance(result, dict):
-            return f"Your active project is:\nID: {result.get('id')}\nName: {result.get('name')}\nDescription: {result.get('description')}"
-        return str(result)
-    else:
-        return str(result)
+# The generate_nl_response function has been moved to projects.py as generate_tool_response

@@ -7,7 +7,7 @@ It also registers these functions as tools that can be used with OpenAI's
 function calling API.
 """
 import uuid
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Any
 
 from core.tools import ToolRegistry
 
@@ -169,3 +169,50 @@ def get_project_tool_schemas():
         List of tool schemas in OpenAI format
     """
     return tool_registry.get_tool_schemas()
+
+def generate_tool_response(tool_name: str, args: Dict[str, Any], result: Optional[Union[str, Dict]]) -> str:
+    """Generate a natural language response for a tool execution.
+    
+    Args:
+        tool_name: Name of the executed tool
+        args: Tool arguments
+        result: Tool execution result
+        
+    Returns:
+        Natural language response
+    """
+    # Handle None results (tool execution failed)
+    if result is None:
+        if tool_name == "list_projects_tool":
+            return "You don't have any projects yet. Would you like to create one?"
+        elif tool_name == "delete_project_tool":
+            return f"I couldn't find a project with ID {args.get('project_id')}."
+        elif tool_name == "switch_project_tool":
+            return f"I couldn't find a project with ID {args.get('project_id')}."
+        elif tool_name == "get_project_details_tool":
+            return f"I couldn't find a project with ID {args.get('project_id')}."
+        elif tool_name == "get_active_project_tool":
+            return "There is no active project. Would you like to create one or switch to an existing one?"
+        else:
+            return "I couldn't complete that action. Please try again."
+    
+    # Handle successful results
+    if tool_name == "list_projects_tool":
+        return f"Here are your projects:\n\n{result}"
+    elif tool_name == "delete_project_tool":
+        return result
+    elif tool_name == "switch_project_tool":
+        return result
+    elif tool_name == "create_project_tool":
+        return f"I've created a new project with ID: {result}"
+    elif tool_name == "get_project_details_tool":
+        if isinstance(result, dict):
+            active_status = " (ACTIVE)" if result.get("is_active") else ""
+            return f"Project details:{active_status}\nID: {result.get('id')}\nName: {result.get('name')}\nDescription: {result.get('description')}"
+        return str(result)
+    elif tool_name == "get_active_project_tool":
+        if isinstance(result, dict):
+            return f"Your active project is:\nID: {result.get('id')}\nName: {result.get('name')}\nDescription: {result.get('description')}"
+        return str(result)
+    else:
+        return str(result)
