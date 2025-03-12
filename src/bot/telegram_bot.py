@@ -13,13 +13,15 @@ from telegram.ext import (
 
 from ai_tools_core.logger import get_logger
 from ai_tools_core.history import get_history_manager
+from ai_tools_core.services.openai_message_service import get_openai_message_service
 from bot.utils import get_telegram_token
 
 # Get logger for this module
 logger = get_logger(__name__)
 
-# Get history manager
+# Get history manager and message service
 history_manager = get_history_manager()
+message_service = get_openai_message_service()
 
 
 class TelegramBot:
@@ -33,6 +35,9 @@ class TelegramBot:
         # Store active conversations for users
         self._user_conversations = {}
         
+        # Store active contexts for users
+        self._user_contexts = {}
+        
         # Register handlers
         self._register_handlers()
         
@@ -45,6 +50,11 @@ class TelegramBot:
         self.application.add_handler(CommandHandler("help", self._help_command))
         self.application.add_handler(CommandHandler("new_conversation", self._new_conversation_command))
         self.application.add_handler(CommandHandler("list_conversations", self._list_conversations_command))
+        
+        # Context management commands
+        self.application.add_handler(CommandHandler("set_context", self._set_context_command))
+        self.application.add_handler(CommandHandler("get_context", self._get_context_command))
+        self.application.add_handler(CommandHandler("clear_context", self._clear_context_command))
         
         # Message handler for text messages
         self.application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self._handle_message))
@@ -98,6 +108,10 @@ class TelegramBot:
             "Conversation Management:\n"
             "- /new_conversation - Start a new conversation\n"
             "- /list_conversations - List your recent conversations\n\n"
+            "Context Management:\n"
+            "- /set_context <context> - Set a context for the current conversation\n"
+            "- /get_context - Show the current context\n"
+            "- /clear_context - Clear the current context\n\n"
             "Just ask me in natural language, for example:\n"
             "\"Show me all projects\"\n"
             "\"Create a new project called 'Test' with description 'A test project'\"\n"
@@ -189,12 +203,16 @@ class TelegramBot:
         # Get or create conversation for this user
         conversation_id = self._user_conversations.get(user_id)
         
+        # Get the active context for this user
+        context = self._user_contexts.get(user_id)
+        
         # Process message with NLP to determine intent
         from bot.handlers import process_message
         response = await process_message(
             message=message_text,
             user_id=user_id,
-            conversation_id=conversation_id
+            conversation_id=conversation_id,
+            context=context
         )
         
         # If this is a new conversation, store the conversation ID
@@ -217,6 +235,87 @@ class TelegramBot:
             await update.effective_message.reply_text(
                 "Sorry, an error occurred while processing your request. Please try again later."
             )
+    
+    async def _set_context_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Handle /set_context command to set a context for the current conversation."""
+        user = update.effective_user
+        user_id = str(user.id)
+        
+        # Get the context text from the command arguments
+        context_text = update.message.text.replace("/set_context", "", 1).strip()
+        
+        if not context_text:
+            await update.message.reply_text(
+                "Please provide a context text. Usage: /set_context <context>"
+            )
+            return
+        
+        # Get the current conversation ID
+        conversation_id = self._user_conversations.get(user_id)
+        if not conversation_id:
+            await update.message.reply_text(
+                "You don't have an active conversation. Start one with /new_conversation"
+            )
+            return
+        
+        # Set the context
+        success = message_service.set_conversation_context(conversation_id, context_text)
+        
+        if success:
+            # Store the context for this user
+            self._user_contexts[user_id] = context_text
+            
+            await update.message.reply_text(f"Context set: {context_text}")
+            logger.info(f"Set context for user {user_id}: {context_text}")
+        else:
+            await update.message.reply_text("Failed to set context. Please try again.")
+    
+    async def _get_context_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Handle /get_context command to show the current context."""
+        user = update.effective_user
+        user_id = str(user.id)
+        
+        # Get the current conversation ID
+        conversation_id = self._user_conversations.get(user_id)
+        if not conversation_id:
+            await update.message.reply_text(
+                "You don't have an active conversation. Start one with /new_conversation"
+            )
+            return
+        
+        # Get the context
+        context_text = message_service.get_conversation_context(conversation_id)
+        
+        if context_text:
+            await update.message.reply_text(f"Current context: {context_text}")
+        else:
+            await update.message.reply_text("No context is set for the current conversation.")
+    
+    async def _clear_context_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Handle /clear_context command to clear the current context."""
+        user = update.effective_user
+        user_id = str(user.id)
+        
+        # Get the current conversation ID
+        conversation_id = self._user_conversations.get(user_id)
+        if not conversation_id:
+            await update.message.reply_text(
+                "You don't have an active conversation. Start one with /new_conversation"
+            )
+            return
+        
+        # Clear the context
+        success = message_service.clear_conversation_context(conversation_id)
+        
+        if success:
+            # Remove the context for this user
+            if user_id in self._user_contexts:
+                del self._user_contexts[user_id]
+            
+            await update.message.reply_text("Context cleared.")
+            logger.info(f"Cleared context for user {user_id}")
+        else:
+            await update.message.reply_text("Failed to clear context. Please try again.")
     
     def run(self) -> None:
         """Run the bot."""

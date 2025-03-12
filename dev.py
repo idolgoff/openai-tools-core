@@ -6,6 +6,7 @@ import logging
 import subprocess
 import signal
 from pathlib import Path
+from dotenv import load_dotenv
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
@@ -57,6 +58,9 @@ def start_app():
         os.killpg(os.getpgid(APP_PROCESS.pid), signal.SIGTERM)
         APP_PROCESS.wait()
         
+    # Force reload environment variables before starting the app
+    load_dotenv(override=True)
+    
     # Start new process
     logger.info("Starting application...")
     APP_PROCESS = subprocess.Popen(
@@ -108,6 +112,9 @@ def main():
     
     logger.info(f"Watching for changes in {SRC_DIR}")
     logger.info("Press Ctrl+C to stop")
+
+    # Force reload and print token for debugging
+    load_dotenv(override=True)
     
     try:
         # Keep the main thread alive
@@ -118,7 +125,6 @@ def main():
     
     observer.join()
     cleanup()
-
 
 if __name__ == "__main__":
     main()

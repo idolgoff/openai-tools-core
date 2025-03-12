@@ -4,7 +4,8 @@ from typing import Optional
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
-load_dotenv()
+# Use override=True to ensure we always get the latest values
+load_dotenv(override=True)
 
 
 def get_env(key: str, default: Optional[str] = None) -> str:

@@ -29,6 +29,7 @@ class Conversation(BaseModel):
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
     metadata: Optional[Dict[str, Any]] = None
+    context: Optional[str] = None  # Simple string context
 
 
 class ConversationSummary(BaseModel):

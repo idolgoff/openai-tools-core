@@ -39,7 +39,11 @@ def get_logger(name: Optional[str] = None) -> logging.Logger:
     logger = logging.getLogger(name or __name__)
     
     # Set the log level from environment variable
-    log_level = getattr(logging, get_log_level().upper())
+    log_level_str = get_log_level().upper()
+    # Remove any comments from the log level string
+    if '#' in log_level_str:
+        log_level_str = log_level_str.split('#')[0].strip()
+    log_level = getattr(logging, log_level_str)
     logger.setLevel(log_level)
     
     # Only add a handler if the logger doesn't already have one

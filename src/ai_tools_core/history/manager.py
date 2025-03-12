@@ -209,6 +209,80 @@ class HistoryManager:
         
         # Delegate to storage backend
         return self.storage.save_conversation(conversation)
+        
+    def set_conversation_context(self, conversation_id: str, context: str) -> bool:
+        """
+        Set a context for a conversation.
+        
+        Args:
+            conversation_id: ID of the conversation
+            context: Context string to set
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        conversation = self.get_conversation(conversation_id)
+        if not conversation:
+            logger.warning(f"Cannot set context: Conversation {conversation_id} not found")
+            return False
+        
+        # Set the context
+        conversation.context = context
+        
+        # Save the conversation
+        success = self.save_conversation(conversation)
+        
+        if success:
+            logger.info(f"Set context for conversation {conversation_id}: {context}")
+        else:
+            logger.warning(f"Failed to save context for conversation {conversation_id}")
+        
+        return success
+    
+    def get_conversation_context(self, conversation_id: str) -> Optional[str]:
+        """
+        Get the context for a conversation.
+        
+        Args:
+            conversation_id: ID of the conversation
+            
+        Returns:
+            Context string or None if not set
+        """
+        conversation = self.get_conversation(conversation_id)
+        if not conversation:
+            logger.warning(f"Cannot get context: Conversation {conversation_id} not found")
+            return None
+        
+        return conversation.context
+    
+    def clear_conversation_context(self, conversation_id: str) -> bool:
+        """
+        Clear the context for a conversation.
+        
+        Args:
+            conversation_id: ID of the conversation
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        conversation = self.get_conversation(conversation_id)
+        if not conversation:
+            logger.warning(f"Cannot clear context: Conversation {conversation_id} not found")
+            return False
+        
+        # Clear the context
+        conversation.context = None
+        
+        # Save the conversation
+        success = self.save_conversation(conversation)
+        
+        if success:
+            logger.info(f"Cleared context for conversation {conversation_id}")
+        else:
+            logger.warning(f"Failed to clear context for conversation {conversation_id}")
+        
+        return success
 
 
 # Singleton instance

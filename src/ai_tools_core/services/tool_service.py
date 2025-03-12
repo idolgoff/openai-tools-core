@@ -29,6 +29,7 @@ class ToolService:
         function_name: str,
         function_args: Dict[str, Any],
         tool_registry: Dict[str, Callable],
+        tool_response_processor: Optional[Callable] = None,
     ) -> Dict[str, Any]:
         """
         Execute a tool call and store the result in history.
@@ -70,7 +71,8 @@ class ToolService:
 
                 # Generate structured response
                 return self._generate_tool_response(
-                    function_name, function_args, result
+                    function_name, function_args, result, conversation_id,
+                    tool_response_processor
                 )
 
             except Exception as e:
@@ -89,7 +91,8 @@ class ToolService:
 
                 # Generate error response
                 error_response = self._generate_tool_response(
-                    function_name, function_args, None
+                    function_name, function_args, None, conversation_id,
+                    tool_response_processor
                 )
                 error_response["error"] = error_message
                 return error_response
@@ -109,13 +112,19 @@ class ToolService:
 
             # Generate error response
             error_response = self._generate_tool_response(
-                function_name, function_args, None
+                function_name, function_args, None, conversation_id,
+                tool_response_processor
             )
             error_response["error"] = error_message
             return error_response
 
     def _generate_tool_response(
-        self, tool_name: str, args: Dict[str, Any], result: Optional[Union[str, Dict]]
+        self,
+        tool_name: str,
+        args: Dict[str, Any],
+        result: Optional[Union[str, Dict]],
+        conversation_id: Optional[str] = None,
+        tool_response_processor: Optional[Callable] = None,
     ) -> Dict[str, Any]:
         """
         Generate a structured response for a tool execution.
@@ -124,6 +133,8 @@ class ToolService:
             tool_name: Name of the executed tool
             args: Tool arguments
             result: Tool execution result
+            conversation_id: Optional conversation ID for context
+            tool_response_processor: Optional callback for processing tool-specific responses
 
         Returns:
             Dictionary with structured response data
@@ -135,6 +146,20 @@ class ToolService:
             "data": result,
             "args": args,
         }
+
+        # Use the tool response processor if provided
+        if tool_response_processor:
+            try:
+                # Call the processor with all relevant information
+                processor_response = tool_response_processor(
+                    tool_name, args, result, conversation_id
+                )
+                # If the processor returns a response, update our base response
+                if processor_response:
+                    response.update(processor_response)
+            except Exception as e:
+                logger.error(f"Error in tool response processor: {str(e)}")
+                # Continue with the base response if the processor fails
 
         # Add additional context based on the tool name pattern
         # This is a simplified version of what was in the projects module
@@ -172,6 +197,7 @@ class ToolService:
         tool_calls: List[Any],
         tool_registry: Dict[str, Callable],
         response_generator: Optional[Callable] = None,
+        tool_response_processor: Optional[Callable] = None,
     ) -> str:
         """
         Process multiple tool calls and generate a response.
@@ -200,6 +226,7 @@ class ToolService:
                 function_name,
                 function_args,
                 tool_registry,
+                tool_response_processor,
             )
 
             structured_responses.append(structured_response)
