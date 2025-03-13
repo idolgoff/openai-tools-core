@@ -1,0 +1,4 @@
+include LICENSE
+include README.md
+include src/ai_tools_core/README.md
+recursive-include src/ai_tools_core *.py

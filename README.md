@@ -28,7 +28,24 @@ ai_tools_core/           # Core package
 
 ### Installation
 
-You can install the package directly from the repository:
+#### From PyPI (Recommended)
+
+Once published, you can install the package directly from PyPI:
+
+```bash
+# Basic installation
+pip install ai-tools-core
+
+# With development dependencies
+pip install ai-tools-core[dev]
+
+# With Telegram bot integration
+pip install ai-tools-core[telegram]
+```
+
+#### From Repository
+
+You can also install the package directly from the repository:
 
 ```bash
 pip install -e .
@@ -60,6 +77,33 @@ Developing with OpenAI's tools API can be challenging. This playground provides:
 - Python 3.8+
 - Telegram Bot Token (from [@BotFather](https://t.me/botfather))
 - OpenAI API Key
+
+### Basic Usage
+
+After installation, you can import and use the package in your Python code:
+
+```python
+# Import core components
+from ai_tools_core import ToolRegistry, get_logger
+from ai_tools_core.services import get_openai_service
+from ai_tools_core.history import get_history_manager, MessageRole
+
+# Create a tool registry
+registry = ToolRegistry()
+
+# Register a tool
+@registry.register()
+def hello_world(name: str) -> str:
+    """Say hello to someone."""
+    return f"Hello, {name}!"
+
+# Use the OpenAI service
+openai_service = get_openai_service()
+response = openai_service.generate_response([
+    {"role": "user", "content": "Tell me a joke"}
+])
+print(response)
+```
 
 ### Setup
 
@@ -176,6 +220,43 @@ ai-tools-playground/
 - [OpenAI Function Calling Documentation](https://platform.openai.com/docs/guides/function-calling)
 - [Telegram Bot API](https://core.telegram.org/bots/api)
 - [Python Telegram Bot Library](https://python-telegram-bot.readthedocs.io/)
+
+## ❓ Troubleshooting
+
+### Common Issues
+
+#### ImportError: No module named 'ai_tools_core'
+
+Make sure the package is properly installed. Try reinstalling with:
+
+```bash
+pip uninstall ai-tools-core
+pip install ai-tools-core
+```
+
+#### OpenAI API Key Issues
+
+If you encounter errors related to the OpenAI API key:
+
+1. Check that your API key is correctly set in the `.env` file
+2. Verify that your API key has sufficient credits
+3. Ensure you're using the correct environment variable name: `OPENAI_API_KEY`
+
+#### Tool Execution Errors
+
+If tools are failing to execute:
+
+1. Check the logs for detailed error messages
+2. Verify that tool parameters match the expected types
+3. Ensure the tool is properly registered in the registry
+
+#### Module Not Found When Using Entry Points
+
+If you encounter issues with the `ai-tools` command:
+
+1. Make sure the package is installed in the active Python environment
+2. Try reinstalling with `pip install -e .` from the repository root
+3. Verify that your PATH includes the Python scripts directory
 
 ## 📄 License
 

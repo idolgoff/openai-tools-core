@@ -32,13 +32,47 @@ ai_tools_core/
 
 ## Installation
 
+### From PyPI (Recommended)
+
+Once published, you can install the package directly from PyPI:
+
 ```bash
-# Install from the repository
+# Basic installation
+pip install ai-tools-core
+
+# With development dependencies
+pip install ai-tools-core[dev]
+
+# With Telegram bot integration
+pip install ai-tools-core[telegram]
+```
+
+### From Repository
+
+You can also install the package directly from the repository:
+
+```bash
+# Install in development mode
 pip install -e .
 
 # Or install directly from the package directory
 cd /path/to/ai_tools_core
 pip install .
+```
+
+### Using uv (Fast Python Package Installer)
+
+For faster installation, you can use [uv](https://github.com/astral-sh/uv), a modern Python package installer:
+
+```bash
+# Install uv if you don't have it
+pip install uv
+
+# Install the package using uv
+uv pip install ai-tools-core
+
+# Or install from the repository
+uv pip install -e .
 ```
 
 ## Environment Configuration

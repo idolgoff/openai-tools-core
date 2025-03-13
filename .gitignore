@@ -67,3 +67,4 @@ var/
 .installed.cfg
 *.egg
 data/
+.qodo

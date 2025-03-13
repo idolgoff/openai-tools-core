@@ -51,6 +51,10 @@
   - [x] Reorganize code into installable package
   - [x] Add setup.py and package metadata
   - [x] Create clear public API interfaces
+  - [x] Add MANIFEST.in for including non-Python files
+  - [x] Create pyproject.toml for modern packaging tools
+  - [x] Add uv installation instructions
+  - [x] Update README with PyPI installation guide
 - [ ] Implement dependency injection
   - [ ] Remove singleton patterns where appropriate
   - [ ] Create service container for managing dependencies
@@ -64,5 +68,9 @@
 ## Deployment Phase
 
 - [x] Documentation finalization
-- [ ] Prepare for deployment
+- [x] Prepare for deployment
+  - [x] Add PyPI installation instructions
+  - [x] Create MANIFEST.in for package distribution
+  - [x] Add pyproject.toml for modern build tools
+  - [x] Add troubleshooting section to documentation
 - [ ] Release v1.0.0
