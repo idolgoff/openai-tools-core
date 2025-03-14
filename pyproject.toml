@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "ai_tools_core"
 dynamic = ["version"]
-description = "Core library for AI tools and integrations"
+description = "Toolkit for building AI-powered applications with OpenAI and other AI services"
 authors = [
     {name = "idolgoff"}
 ]

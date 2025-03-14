@@ -73,4 +73,6 @@
   - [x] Create MANIFEST.in for package distribution
   - [x] Add pyproject.toml for modern build tools
   - [x] Add troubleshooting section to documentation
+  - [x] Refocus documentation on toolkit nature rather than playground
+  - [x] Reposition Telegram bot as an example implementation
 - [ ] Release v1.0.0

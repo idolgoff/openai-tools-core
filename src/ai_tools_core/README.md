@@ -1,6 +1,6 @@
 # AI Tools Core
 
-A core library for AI tools and integrations. This package provides core functionality for working with AI services, managing conversation history, and executing AI-powered tools.
+A comprehensive toolkit for building AI-powered applications. This package provides core functionality for tool registration, AI service integration, conversation history management, and more to accelerate your AI development workflow.
 
 ## Package Structure
 
@@ -22,11 +22,11 @@ ai_tools_core/
 └── logger.py          # Logging utilities
 ```
 
-## Features
+## Core Components
 
-- **Tool Registry**: Register and execute AI-powered tools with a unified interface
+- **Tool Registry**: Register, validate, and execute AI tools with a unified interface
+- **AI Service Integration**: Connect with OpenAI and other AI services with proper error handling
 - **History Management**: Store and retrieve conversation history with multiple storage backends
-- **AI Service Integration**: Interact with AI services like OpenAI with proper error handling
 - **Message Formatting**: Format messages for different AI providers (OpenAI, Anthropic)
 - **Logging**: Structured logging with color formatting and tool execution tracking
 
@@ -221,6 +221,7 @@ You can create custom storage backends for conversation history:
 ```python
 from ai_tools_core.history.storage import StorageBackend
 from ai_tools_core.history.models import Conversation, ConversationSummary
+from typing import List
 
 class CustomStorageBackend(StorageBackend):
     def save_conversation(self, conversation: Conversation) -> None:
@@ -234,8 +235,88 @@ class CustomStorageBackend(StorageBackend):
     def list_conversations(self, user_id: str) -> List[ConversationSummary]:
         # Implement your listing logic
         pass
-        
-    # Implement other required methods
+```
+
+## Example Applications
+
+The toolkit can be used to build various AI-powered applications. Here are some examples:
+
+### Command-Line Interface
+
+```python
+from ai_tools_core import ToolRegistry, get_logger
+from ai_tools_core.services import get_openai_service
+import argparse
+
+def main():
+    # Create a tool registry
+    registry = ToolRegistry()
+    
+    # Register tools
+    @registry.register()
+    def echo(message: str) -> str:
+        """Echo a message back to the user."""
+        return message
+    
+    # Set up CLI
+    parser = argparse.ArgumentParser(description="AI Tools CLI")
+    parser.add_argument("message", help="Message to process")
+    args = parser.parse_args()
+    
+    # Process with OpenAI
+    service = get_openai_service()
+    response = service.generate_response([
+        {"role": "user", "content": args.message}
+    ])
+    print(response)
+
+if __name__ == "__main__":
+    main()
+```
+
+### Web API
+
+```python
+from fastapi import FastAPI
+from pydantic import BaseModel
+from ai_tools_core import ToolRegistry
+from ai_tools_core.services import get_openai_service
+
+app = FastAPI()
+registry = ToolRegistry()
+
+class Message(BaseModel):
+    content: str
+
+@app.post("/chat")
+async def chat(message: Message):
+    service = get_openai_service()
+    response = service.generate_response([
+        {"role": "user", "content": message.content}
+    ])
+    return {"response": response}
+```
+
+### Telegram Bot
+
+A Telegram bot example is included in the repository to demonstrate how to use the toolkit in a real application.
+
+```python
+from ai_tools_core import ToolRegistry
+from bot.telegram_bot import create_bot
+
+# Create a tool registry
+registry = ToolRegistry()
+
+# Register tools
+@registry.register()
+def hello_world(name: str) -> str:
+    """Say hello to someone."""
+    return f"Hello, {name}!"
+
+# Create and run the bot
+bot = create_bot(registry)
+bot.run()
 ```
 
 ### Custom Message Formatters
