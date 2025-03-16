@@ -214,6 +214,67 @@ with log_tool_execution(logger, "calculate_sum", {"a": 5, "b": 3}):
 
 ## Advanced Usage
 
+### Token Usage Tracking
+
+The toolkit provides a flexible system for tracking token usage without implementing billing logic directly. This allows you to integrate with your own billing systems.
+
+#### Basic Usage
+
+```python
+from ai_tools_core import get_openai_service
+from ai_tools_core.usage import InMemoryUsageTracker
+
+# Create a usage tracker
+tracker = InMemoryUsageTracker()
+
+# Create the OpenAI service with the tracker
+service = get_openai_service(usage_tracker=tracker)
+
+# Use the service as normal
+response = service.process_with_tools(messages, tools)
+
+# Get usage statistics
+usage = tracker.get_current_usage()
+print(f"Total tokens used: {usage['total_tokens']}")
+```
+
+#### Custom Implementation
+
+To implement your own usage tracking system, create a class that implements the `UsageTracker` interface:
+
+```python
+from ai_tools_core.usage import UsageTracker, UsageEvent
+
+class MyBillingTracker(UsageTracker):
+    def __init__(self, api_key, billing_endpoint):
+        self.api_key = api_key
+        self.billing_endpoint = billing_endpoint
+    
+    def track_usage(self, event: UsageEvent) -> None:
+        # Send usage data to your billing system
+        requests.post(
+            self.billing_endpoint,
+            headers={"Authorization": f"Bearer {self.api_key}"},
+            json={
+                "timestamp": event.timestamp,
+                "model": event.model,
+                "input_tokens": event.input_tokens,
+                "output_tokens": event.output_tokens,
+                "total_tokens": event.input_tokens + event.output_tokens,
+                "user_id": event.user_id
+            }
+        )
+    
+    def get_current_usage(self, user_id=None, **kwargs) -> Dict[str, Any]:
+        # Fetch current usage from your billing system
+        response = requests.get(
+            f"{self.billing_endpoint}/summary",
+            headers={"Authorization": f"Bearer {self.api_key}"},
+            params={"user_id": user_id}
+        )
+        return response.json()
+```
+
 ### Custom Storage Backends
 
 You can create custom storage backends for conversation history:

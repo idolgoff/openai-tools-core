@@ -49,6 +49,11 @@
   - [ ] Support multiple environment types (dev, test, prod)
 - [x] Create proper package structure
   - [x] Reorganize code into installable package
+- [x] Implement token usage tracking
+  - [x] Create usage events and tracker interface
+  - [x] Implement no-op and in-memory tracker implementations
+  - [x] Integrate with OpenAI service
+  - [x] Add billing example in bot implementation
   - [x] Add setup.py and package metadata
   - [x] Create clear public API interfaces
   - [x] Add MANIFEST.in for including non-Python files

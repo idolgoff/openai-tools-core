@@ -4,7 +4,7 @@ This package provides core functionality for working with AI services,
 managing conversation history, and executing AI-powered tools.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 # Import key components to make them available at the package level
 from .tools import ToolRegistry
@@ -14,6 +14,9 @@ from .logger import get_logger, log_tool_execution
 from .services.openai_service import OpenAIService, get_openai_service
 from .services.openai_message_service import OpenAIMessageService, get_openai_message_service
 from .services.tool_service import ToolService, get_tool_service
+
+# Import usage tracking components
+from .usage import UsageEvent, UsageTracker, NoOpUsageTracker, InMemoryUsageTracker
 
 # Import history components
 try:
