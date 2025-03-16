@@ -24,7 +24,7 @@ class OpenAIService:
 
     def __init__(self, usage_tracker: Optional[UsageTracker] = None):
         """Initialize the OpenAI service.
-        
+
         Args:
             usage_tracker: Optional usage tracker for monitoring token consumption
         """
@@ -52,8 +52,11 @@ class OpenAIService:
         logger.info(f"OpenAI service initialized with model: {self.model}")
 
     def process_with_tools(
-        self, messages: List[Dict[str, Any]], tools: List[Dict[str, Any]],
-        session_id: Optional[str] = None, user_id: Optional[str] = None
+        self,
+        messages: List[Dict[str, Any]],
+        tools: List[Dict[str, Any]],
+        session_id: Optional[str] = None,
+        user_id: Optional[str] = None,
     ) -> Any:
         """
         Process messages with the OpenAI API using tools.
@@ -69,35 +72,38 @@ class OpenAIService:
         """
         # Count input tokens before making the API call
         input_tokens = self.count_tokens(messages)
-        
+
         try:
             response = self.client.chat.completions.create(
                 model=self.model, messages=messages, tools=tools, tool_choice="auto"
             )
-            
+
             # Extract usage information from response
-            output_tokens = response.usage.completion_tokens if hasattr(response.usage, 'completion_tokens') else 0
-            
+            output_tokens = response.usage.completion_tokens if hasattr(response.usage, "completion_tokens") else 0
+
             # Create and track usage event
             event = UsageEvent(
                 model=self.model,
                 input_tokens=input_tokens,
                 output_tokens=output_tokens,
-                request_type="tool_call",
+                request_type="tool_call" if response.choices[0].message.tool_calls else "chat",
                 session_id=session_id,
                 user_id=user_id,
-                metadata={"tool_count": len(tools)}
+                metadata={"tool_count": len(tools)},
             )
             self.usage_tracker.track_usage(event)
-            
+
             return response
         except Exception as e:
             logger.error(f"Error calling OpenAI API: {str(e)}", exc_info=True)
             raise
 
     def generate_response(
-        self, messages: List[Dict[str, Any]], max_tokens: int = 300,
-        session_id: Optional[str] = None, user_id: Optional[str] = None
+        self,
+        messages: List[Dict[str, Any]],
+        max_tokens: int = 300,
+        session_id: Optional[str] = None,
+        user_id: Optional[str] = None,
     ) -> str:
         """
         Generate a natural language response from the OpenAI API.
@@ -113,15 +119,13 @@ class OpenAIService:
         """
         # Count input tokens before making the API call
         input_tokens = self.count_tokens(messages)
-        
+
         try:
-            response = self.client.chat.completions.create(
-                model=self.model, messages=messages, max_tokens=max_tokens
-            )
-            
+            response = self.client.chat.completions.create(model=self.model, messages=messages, max_tokens=max_tokens)
+
             # Extract usage information from response
-            output_tokens = response.usage.completion_tokens if hasattr(response.usage, 'completion_tokens') else 0
-            
+            output_tokens = response.usage.completion_tokens if hasattr(response.usage, "completion_tokens") else 0
+
             # Create and track usage event
             event = UsageEvent(
                 model=self.model,
@@ -130,10 +134,10 @@ class OpenAIService:
                 request_type="chat",
                 session_id=session_id,
                 user_id=user_id,
-                metadata={"max_tokens": max_tokens}
+                metadata={"max_tokens": max_tokens},
             )
             self.usage_tracker.track_usage(event)
-            
+
             return response.choices[0].message.content or "I processed your request."
         except Exception as e:
             logger.error(f"Error generating response: {str(e)}", exc_info=True)
@@ -154,9 +158,7 @@ class OpenAIService:
         # Add tokens for each message
         for message in messages:
             # Add tokens for role
-            num_tokens += (
-                4  # Every message follows <im_start>{role/name}\n{content}<im_end>\n
-            )
+            num_tokens += 4  # Every message follows <im_start>{role/name}\n{content}<im_end>\n
             # Add tokens for content
             if "content" in message and message["content"]:
                 num_tokens += self.tokenizer.encode(message["content"]).__len__()
@@ -172,14 +174,10 @@ class OpenAIService:
                     if "function" in tool_call:
                         function = tool_call["function"]
                         if "name" in function:
-                            num_tokens += self.tokenizer.encode(
-                                function["name"]
-                            ).__len__()
+                            num_tokens += self.tokenizer.encode(function["name"]).__len__()
                         if "arguments" in function:
                             # Arguments are usually JSON strings
-                            num_tokens += self.tokenizer.encode(
-                                function["arguments"]
-                            ).__len__()
+                            num_tokens += self.tokenizer.encode(function["arguments"]).__len__()
 
         # Add tokens for the formatting of the messages
         num_tokens += 2  # Every reply is primed with <im_start>assistant\n
@@ -233,23 +231,18 @@ class OpenAIService:
             # Keep only the most recent system messages if they exceed the limit
             while system_messages and self.count_tokens(system_messages) > max_tokens:
                 system_messages.pop(0)
-                
+
         # Start removing older messages (from the beginning) until we're under the limit
         limited_messages = other_messages.copy()
 
-        while (
-            limited_messages
-            and self.count_tokens(system_messages + limited_messages) > max_tokens
-        ):
+        while limited_messages and self.count_tokens(system_messages + limited_messages) > max_tokens:
             # Remove the oldest message
             limited_messages.pop(0)
 
         # Combine system messages with the limited messages
         result = system_messages + limited_messages
 
-        logger.info(
-            f"Limited messages from {len(messages)} to {len(result)} to fit within {max_tokens} tokens"
-        )
+        logger.info(f"Limited messages from {len(messages)} to {len(result)} to fit within {max_tokens} tokens")
         return result
 
 
@@ -263,7 +256,7 @@ def get_openai_service(usage_tracker: Optional[UsageTracker] = None) -> OpenAISe
 
     Args:
         usage_tracker: Optional usage tracker for monitoring token consumption
-        
+
     Returns:
         OpenAI service instance
     """
