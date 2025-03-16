@@ -25,8 +25,7 @@ tool_service = get_tool_service()
 
 
 async def process_message(
-    message: str, user_id: str = "default_user", conversation_id: Optional[str] = None,
-    context: Optional[str] = None
+    message: str, user_id: str = "default_user", conversation_id: Optional[str] = None, context: Optional[str] = None
 ) -> str:
     """
     Process a natural language message and execute the appropriate tool.
@@ -44,9 +43,7 @@ async def process_message(
 
     try:
         # Get or create conversation with context
-        conversation_id = openai_message_service.create_or_get_conversation(
-            user_id, conversation_id, context
-        )
+        conversation_id = openai_message_service.create_or_get_conversation(user_id, conversation_id, context)
 
         # Add user message to history
         openai_message_service.add_user_message(conversation_id, message)
@@ -59,7 +56,7 @@ async def process_message(
         messages = openai_message_service.get_conversation_messages(conversation_id, max_tokens=4000)
 
         # Call OpenAI API to process the message
-        response = openai_service.process_with_tools(messages, tools)
+        response = openai_service.process_with_tools(messages, tools, user_id=user_id, session_id=conversation_id)
 
         # Extract the response content
         response_message = response.choices[0].message
@@ -68,17 +65,15 @@ async def process_message(
 
         # Store assistant's response in history
         if response_message.content:
-            openai_message_service.add_assistant_message(
-                conversation_id, response_message.content
-            )
+            openai_message_service.add_assistant_message(conversation_id, response_message.content)
 
         # Check if a tool call was made
         if response_message.tool_calls:
             logger.info(f"Processing {len(response_message.tool_calls)} tool calls")
-            
+
             # Get the project tools dictionary
             project_tools = get_project_tools()
-            
+
             # Use the tool service to process all tool calls
             # This handles executing tools, storing results in history, and generating responses
             combined_response = tool_service.process_tool_calls(
@@ -86,18 +81,18 @@ async def process_message(
                 response_message.tool_calls,
                 project_tools,
                 # Pass the response generator function
-                lambda messages: openai_service.generate_response(messages),
+                lambda messages: openai_service.generate_response(
+                    messages, user_id=user_id, session_id=conversation_id
+                ),
                 # Pass the project tool response processor
-                tool_response_processor=project_tool_response_processor
+                tool_response_processor=project_tool_response_processor,
             )
-            
-            return combined_response + f'\n\n---\n{context_text if context_text else ""}'
+
+            return combined_response + (f"\n\n---\n{context_text}" if context_text else "")
         else:
             # No tool call was made, return the model's response
-            response_content = (
-                response_message.content or "I'm not sure how to help with that."
-            )
-            return response_content + f'\n\n---\n{context_text if context_text else ""}'
+            response_content = response_message.content or "I'm not sure how to help with that."
+            return response_content + (f"\n\n---\n{context_text}" if context_text else "")
 
     except Exception as e:
         logger.error(f"Error processing message: {str(e)}", exc_info=True)

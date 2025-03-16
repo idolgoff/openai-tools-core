@@ -183,8 +183,7 @@ def get_project_tool_schemas():
 
 
 def generate_tool_response(
-    tool_name: str, args: Dict[str, Any], result: Optional[Union[str, Dict]], 
-    conversation_id: Optional[str] = None
+    tool_name: str, args: Dict[str, Any], result: Optional[Union[str, Dict]], conversation_id: Optional[str] = None
 ) -> Dict[str, Any]:
     """Generate a structured response for a tool execution.
 
@@ -216,7 +215,7 @@ def generate_tool_response(
             message_service = get_openai_message_service()
             context = f"Project: {project_name} - {project_description}"
             message_service.set_conversation_context(conversation_id, context)
-    
+
     # Add additional context based on the tool
     if tool_name == "list_projects_tool":
         response["context"] = {

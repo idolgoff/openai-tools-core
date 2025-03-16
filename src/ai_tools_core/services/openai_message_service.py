@@ -50,7 +50,7 @@ class OpenAIMessageService:
                 "Your task is to understand the user's intent and call the appropriate "
                 "function to handle their request.",
             )
-            
+
             # Set context if provided
             if context:
                 self.set_conversation_context(conversation_id, context)
@@ -72,7 +72,7 @@ class OpenAIMessageService:
         conversation_id: str,
         message: str,
         metadata: Optional[Dict[str, Any]] = None,
-        append_context_footer: bool = True
+        append_context_footer: bool = True,
     ) -> None:
         """
         Add an assistant message to the conversation history.
@@ -91,13 +91,11 @@ class OpenAIMessageService:
                 if "---" in message and message.split("---")[-1].strip() != context:
                     # Remove existing context footer
                     message = message.split("---")[0].strip()
-                
+
                 # Add the context footer
                 message += f"\n\n---\n{context}"
-                
-        self.history_manager.add_message(
-            conversation_id, MessageRole.ASSISTANT, message, metadata
-        )
+
+        self.history_manager.add_message(conversation_id, MessageRole.ASSISTANT, message, metadata)
 
     def add_tool_call_message(
         self,
@@ -219,10 +217,10 @@ class OpenAIMessageService:
         """
         # Get all messages with the OpenAI formatter
         all_messages = self.history_manager.get_messages(conversation_id, formatter_type="openai")
-        
+
         # Get the current context
         context = self.get_conversation_context(conversation_id)
-        
+
         # If we have a context, ensure it's included in a system message
         if context:
             # Look for an existing system message to update
@@ -235,26 +233,23 @@ class OpenAIMessageService:
                     if "Current context:" in base_content:
                         # Remove the existing context part
                         base_content = base_content.split("Current context:")[0].strip()
-                    
+
                     # Add the new context
                     msg["content"] = f"{base_content}\n\nCurrent context: {context}"
                     system_message_found = True
                     break
-            
+
             # If no system message exists, add one with the context at the beginning
             if not system_message_found:
-                all_messages.insert(0, {
-                    "role": "system",
-                    "content": f"You are an AI assistant. Current context: {context}"
-                })
-        
+                all_messages.insert(
+                    0, {"role": "system", "content": f"You are an AI assistant. Current context: {context}"}
+                )
+
         # Limit messages by token count
         limited_messages = self.openai_service.limit_messages_by_tokens(
-            messages=all_messages,
-            max_tokens=max_tokens,
-            keep_system_messages=True
+            messages=all_messages, max_tokens=max_tokens, keep_system_messages=True
         )
-        
+
         return limited_messages
 
 
@@ -278,6 +273,18 @@ def get_openai_message_service() -> OpenAIMessageService:
 
 
 # Context management methods for the OpenAIMessageService
-setattr(OpenAIMessageService, 'set_conversation_context', lambda self, conversation_id, context: self.history_manager.set_conversation_context(conversation_id, context))
-setattr(OpenAIMessageService, 'get_conversation_context', lambda self, conversation_id: self.history_manager.get_conversation_context(conversation_id))
-setattr(OpenAIMessageService, 'clear_conversation_context', lambda self, conversation_id: self.history_manager.clear_conversation_context(conversation_id))
+setattr(
+    OpenAIMessageService,
+    "set_conversation_context",
+    lambda self, conversation_id, context: self.history_manager.set_conversation_context(conversation_id, context),
+)
+setattr(
+    OpenAIMessageService,
+    "get_conversation_context",
+    lambda self, conversation_id: self.history_manager.get_conversation_context(conversation_id),
+)
+setattr(
+    OpenAIMessageService,
+    "clear_conversation_context",
+    lambda self, conversation_id: self.history_manager.clear_conversation_context(conversation_id),
+)
