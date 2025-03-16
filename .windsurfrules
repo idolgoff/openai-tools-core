@@ -7,3 +7,4 @@
 4. Main branch is master
 5. OpenAi main model is 'gpt-4o-mini'. It uses tools that defined in src/core/tools.
 6. App is started by hand. Don't run it automatically.
+7. In python code follow black formatting default rules but line length 120.

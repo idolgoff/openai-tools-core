@@ -45,14 +45,10 @@ class ToolService:
             Structured response containing the result or error
         """
         # Log the tool call
-        logger.info(
-            f"Executing tool: {function_name} with args: {function_args}, id: {tool_call_id}"
-        )
+        logger.info(f"Executing tool: {function_name} with args: {function_args}, id: {tool_call_id}")
 
         # Store tool call in history
-        self.openai_message_service.add_tool_call_message(
-            conversation_id, function_name, function_args, tool_call_id
-        )
+        self.openai_message_service.add_tool_call_message(conversation_id, function_name, function_args, tool_call_id)
 
         # Check if the tool exists in the registry
         if function_name in tool_registry:
@@ -71,8 +67,7 @@ class ToolService:
 
                 # Generate structured response
                 return self._generate_tool_response(
-                    function_name, function_args, result, conversation_id,
-                    tool_response_processor
+                    function_name, function_args, result, conversation_id, tool_response_processor
                 )
 
             except Exception as e:
@@ -91,8 +86,7 @@ class ToolService:
 
                 # Generate error response
                 error_response = self._generate_tool_response(
-                    function_name, function_args, None, conversation_id,
-                    tool_response_processor
+                    function_name, function_args, None, conversation_id, tool_response_processor
                 )
                 error_response["error"] = error_message
                 return error_response
@@ -112,8 +106,7 @@ class ToolService:
 
             # Generate error response
             error_response = self._generate_tool_response(
-                function_name, function_args, None, conversation_id,
-                tool_response_processor
+                function_name, function_args, None, conversation_id, tool_response_processor
             )
             error_response["error"] = error_message
             return error_response
@@ -151,9 +144,7 @@ class ToolService:
         if tool_response_processor:
             try:
                 # Call the processor with all relevant information
-                processor_response = tool_response_processor(
-                    tool_name, args, result, conversation_id
-                )
+                processor_response = tool_response_processor(tool_name, args, result, conversation_id)
                 # If the processor returns a response, update our base response
                 if processor_response:
                     response.update(processor_response)
@@ -235,15 +226,11 @@ class ToolService:
         responses = []
         if structured_responses and response_generator:
             # Add structured responses to history for the model to use
-            self.openai_message_service.add_system_message_with_tool_responses(
-                conversation_id, structured_responses
-            )
+            self.openai_message_service.add_system_message_with_tool_responses(conversation_id, structured_responses)
 
             # Get updated conversation messages with token limiting
             # Use a slightly lower token limit (3500) to leave room for the response
-            updated_messages = self.openai_message_service.get_conversation_messages(
-                conversation_id, max_tokens=3500
-            )
+            updated_messages = self.openai_message_service.get_conversation_messages(conversation_id, max_tokens=3500)
 
             # Generate a natural language response
             nl_content = response_generator(updated_messages)
@@ -254,9 +241,7 @@ class ToolService:
 
         # Store final response in history
         if combined_response:
-            self.openai_message_service.add_assistant_message(
-                conversation_id, combined_response
-            )
+            self.openai_message_service.add_assistant_message(conversation_id, combined_response)
 
         return combined_response or "I processed your request."
 

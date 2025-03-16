@@ -10,11 +10,12 @@ Example usage in an application:
     ```python
     from dotenv import load_dotenv
     load_dotenv()  # Load .env file at application startup
-    
+
     from ai_tools_core.utils.env import get_env
     api_key = get_env("OPENAI_API_KEY")
     ```
 """
+
 import os
 from typing import Optional, Dict, Any
 
@@ -22,14 +23,14 @@ from typing import Optional, Dict, Any
 def get_env(key: str, default: Optional[str] = None) -> str:
     """
     Get environment variable value.
-    
+
     Args:
         key: Environment variable name
         default: Default value if environment variable is not set
-        
+
     Returns:
         Environment variable value or default
-        
+
     Raises:
         ValueError: If environment variable is not set and no default is provided
     """
@@ -42,17 +43,17 @@ def get_env(key: str, default: Optional[str] = None) -> str:
 def load_from_env(config_keys: Dict[str, Any]) -> Dict[str, Any]:
     """
     Load configuration from environment variables based on a configuration schema.
-    
+
     This is a more flexible approach to loading configuration that allows for
     default values and type conversion.
-    
+
     Args:
         config_keys: Dictionary mapping configuration keys to their default values or
                      tuples of (env_var_name, default_value, type_converter)
-    
+
     Returns:
         Dictionary with configuration values loaded from environment variables
-        
+
     Example:
         ```python
         config = load_from_env({
@@ -64,14 +65,14 @@ def load_from_env(config_keys: Dict[str, Any]) -> Dict[str, Any]:
         ```
     """
     result = {}
-    
+
     for key, value in config_keys.items():
         if isinstance(value, tuple) and len(value) >= 2:
             # Handle tuple format (env_var_name, default_value, type_converter)
             env_var = value[0]
             default = value[1]
             converter = value[2] if len(value) > 2 else lambda x: x
-            
+
             env_value = os.environ.get(env_var, default)
             if env_value is not None:
                 try:
@@ -85,7 +86,7 @@ def load_from_env(config_keys: Dict[str, Any]) -> Dict[str, Any]:
         else:
             # Handle simple default value
             result[key] = value
-    
+
     return result
 
 
@@ -106,16 +107,18 @@ def get_log_level() -> str:
 
 def get_openai_config() -> Dict[str, Any]:
     """Get OpenAI configuration from environment variables.
-    
+
     Returns a dictionary with all OpenAI-related configuration.
     This is a more flexible approach than individual getter functions.
-    
+
     Returns:
         Dictionary with OpenAI configuration
     """
-    return load_from_env({
-        "api_key": ("OPENAI_API_KEY", None, str),
-        "model": ("OPENAI_MODEL", "gpt-4o-mini", str),
-        "temperature": ("OPENAI_TEMPERATURE", 0.7, float),
-        "max_tokens": ("OPENAI_MAX_TOKENS", 1000, int),
-    })
+    return load_from_env(
+        {
+            "api_key": ("OPENAI_API_KEY", None, str),
+            "model": ("OPENAI_MODEL", "gpt-4o-mini", str),
+            "temperature": ("OPENAI_TEMPERATURE", 0.7, float),
+            "max_tokens": ("OPENAI_MAX_TOKENS", 1000, int),
+        }
+    )

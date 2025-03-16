@@ -1,4 +1,5 @@
 """Utility functions for the Telegram bot."""
+
 from ai_tools_core.utils.env import get_env
 
 

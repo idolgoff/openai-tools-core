@@ -81,7 +81,9 @@ async def process_message(
                 response_message.tool_calls,
                 project_tools,
                 # Pass the response generator function
-                lambda messages: openai_service.generate_response(messages, user_id=user_id, session_id=conversation_id),
+                lambda messages: openai_service.generate_response(
+                    messages, user_id=user_id, session_id=conversation_id
+                ),
                 # Pass the project tool response processor
                 tool_response_processor=project_tool_response_processor,
             )

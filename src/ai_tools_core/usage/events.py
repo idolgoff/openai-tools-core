@@ -6,11 +6,11 @@ from typing import Dict, Any, Optional
 
 class UsageEvent:
     """Event containing token usage information.
-    
+
     This class represents a single token usage event, typically generated
     when making an API call to an AI service.
     """
-    
+
     def __init__(
         self,
         model: str,
@@ -22,7 +22,7 @@ class UsageEvent:
         metadata: Optional[Dict[str, Any]] = None,
     ):
         """Initialize a usage event.
-        
+
         Args:
             model: The AI model used (e.g., 'gpt-4o-mini')
             input_tokens: Number of input tokens consumed
@@ -41,10 +41,10 @@ class UsageEvent:
         self.session_id = session_id
         self.user_id = user_id
         self.metadata = metadata or {}
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert the event to a dictionary.
-        
+
         Returns:
             Dictionary representation of the event
         """

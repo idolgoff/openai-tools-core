@@ -21,9 +21,15 @@ from .usage import UsageEvent, UsageTracker, NoOpUsageTracker, InMemoryUsageTrac
 # Import history components
 try:
     from .history import (
-        Conversation, Message, MessageRole, ConversationSummary,
-        MessageFormatter, OpenAIMessageFormatter, AnthropicMessageFormatter,
-        create_message_formatter, get_history_manager
+        Conversation,
+        Message,
+        MessageRole,
+        ConversationSummary,
+        MessageFormatter,
+        OpenAIMessageFormatter,
+        AnthropicMessageFormatter,
+        create_message_formatter,
+        get_history_manager,
     )
 except ImportError:
     # During transition, these may not be available yet
@@ -32,31 +38,27 @@ except ImportError:
 # Define what's available when using `from ai_tools_core import *`
 __all__ = [
     # Version info
-    '__version__',
-    
+    "__version__",
     # Core tools
-    'ToolRegistry',
-    
+    "ToolRegistry",
     # Utilities
-    'get_logger',
-    'log_tool_execution',
-    
+    "get_logger",
+    "log_tool_execution",
     # Services
-    'OpenAIService',
-    'get_openai_service',
-    'OpenAIMessageService',
-    'get_openai_message_service',
-    'ToolService',
-    'get_tool_service',
-    
+    "OpenAIService",
+    "get_openai_service",
+    "OpenAIMessageService",
+    "get_openai_message_service",
+    "ToolService",
+    "get_tool_service",
     # History components
-    'Conversation',
-    'Message',
-    'MessageRole',
-    'ConversationSummary',
-    'MessageFormatter',
-    'OpenAIMessageFormatter',
-    'AnthropicMessageFormatter',
-    'create_message_formatter',
-    'get_history_manager',
+    "Conversation",
+    "Message",
+    "MessageRole",
+    "ConversationSummary",
+    "MessageFormatter",
+    "OpenAIMessageFormatter",
+    "AnthropicMessageFormatter",
+    "create_message_formatter",
+    "get_history_manager",
 ]

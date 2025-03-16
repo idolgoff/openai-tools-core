@@ -1,4 +1,5 @@
 """Environment variable handling utilities."""
+
 import os
 from typing import Optional
 from dotenv import load_dotenv
@@ -11,14 +12,14 @@ load_dotenv(override=True)
 def get_env(key: str, default: Optional[str] = None) -> str:
     """
     Get environment variable value.
-    
+
     Args:
         key: Environment variable name
         default: Default value if environment variable is not set
-        
+
     Returns:
         Environment variable value or default
-        
+
     Raises:
         ValueError: If environment variable is not set and no default is provided
     """
