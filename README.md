@@ -1,15 +1,24 @@
-# 🚀 AI Tools Core: Toolkit for Building AI-Powered Applications
+# 🚀 AI Tools Core: Python Toolkit for OpenAI Function Calling & LLM Applications
 
-A comprehensive toolkit for developers building applications with AI services like OpenAI. This package provides core functionality for tool registration, conversation management, and AI service integration to accelerate your AI development workflow.
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![PyPI version](https://badge.fury.io/py/ai-tools-core.svg)](https://badge.fury.io/py/ai-tools-core)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-brightgreen.svg)](https://conventionalcommits.org)
+[![OpenAI API](https://img.shields.io/badge/OpenAI%20API-Compatible-brightgreen.svg)](https://platform.openai.com/)
+[![Telegram Bot API](https://img.shields.io/badge/Telegram%20Bot%20API-Compatible-blue.svg)](https://core.telegram.org/bots/api)
+
+A comprehensive Python toolkit for developers building AI-powered applications with OpenAI, ChatGPT, and other Large Language Models (LLMs). This package provides essential infrastructure for OpenAI function calling, conversation history management, token usage tracking, and AI service integration to accelerate your AI development workflow.
 
 ## ✨ Key Features
 
-- 🔧 **Tool Registry System**: Register, validate, and execute AI tools with a unified interface
-- 🧠 **AI Service Integration**: Connect with OpenAI and other AI services with proper error handling
-- 📊 **Conversation History Management**: Track and analyze AI interactions with proper tool call handling
-- 📝 **Comprehensive Logging**: Monitor tool execution with detailed, non-duplicative logs
-- 🔄 **Hot Reload Development**: Rapid iteration with auto-reloading development server
-- 🤖 **Example Telegram Bot**: Reference implementation showing how to use the toolkit in a real application
+- 🔧 **OpenAI Function Calling**: Seamlessly register, validate, and execute AI tools with OpenAI's function calling API
+- 🧠 **LLM Integration**: Connect with OpenAI GPT models and other AI services with robust error handling
+- 📊 **Conversation History**: Track and manage multi-turn conversations with proper tool call handling
+- 💰 **Token Usage Tracking**: Monitor and analyze token consumption with flexible billing integration
+- 📝 **Structured Logging**: Comprehensive logging system for debugging and monitoring AI interactions
+- 🔄 **Development Mode**: Rapid iteration with auto-reloading development server
+- 🤖 **Telegram Bot Example**: Production-ready reference implementation showing real-world application
 
 ## 📦 Package Structure
 
@@ -61,23 +70,25 @@ pip install -e ".[dev]"
 pip install -e ".[telegram]"
 ```
 
-## 🛠️ Why Use This Toolkit?
+## 🛠️ Why Use AI Tools Core?
 
-Developing with AI services and tools can be challenging. This toolkit provides:
+Building applications with OpenAI and other LLMs presents unique challenges that this toolkit solves:
 
-- **Modular Components**: Use only the parts you need for your specific application
-- **Best Practices**: Implement AI tools following industry best practices
-- **Conversation Management**: Properly handle tool calls in multi-turn conversations
-- **Extensibility**: Easily extend the toolkit with your own tools and integrations
-- **Production-Ready**: Build applications that are ready for production use
+- **OpenAI Function Calling Made Easy**: Simplifies the complex process of implementing OpenAI's function calling API
+- **Token Efficiency**: Optimized conversation management to reduce token usage and costs
+- **Production-Ready Architecture**: Battle-tested components used in real-world applications
+- **Flexible Integration**: Works with multiple AI providers (OpenAI, Anthropic, etc.) through a unified interface
+- **Modular Design**: Use only the components you need for your specific application
+- **Best Practices Built-In**: Implements industry standards for AI safety, error handling, and performance
+- **Developer Experience**: Rapid development with hot-reloading and comprehensive debugging tools
 
 ## 🚦 Getting Started
 
 ### Prerequisites
 
 - Python 3.8+
-- Telegram Bot Token (from [@BotFather](https://t.me/botfather))
 - OpenAI API Key
+- Telegram Bot Token (optional, only for the bot example)
 
 ### Basic Usage
 
@@ -145,30 +156,38 @@ print(response)
    python src/main.py
    ```
 
-## 🎮 How to Use This Toolkit
+## 🎮 How to Use AI Tools Core
 
-This toolkit is designed to be modular and flexible. Here are some ways to use it:
+This toolkit is designed to be modular and flexible. Here are some ways to implement OpenAI function calling and build AI-powered applications:
 
-### 1. Creating and Registering Tools
+### 1. Implementing OpenAI Function Calling
 
 ```python
 from ai_tools_core import ToolRegistry, log_tool_execution
 
-# Create a tool registry
+# Create a tool registry for OpenAI function calling
 registry = ToolRegistry()
 
 # Register a tool with the decorator pattern
 @registry.register()
-def get_weather(location: str) -> str:
-    """Get weather information for a location."""
+def get_weather(location: str, unit: str = "fahrenheit") -> str:
+    """Get current weather information for a specific location.
+    
+    Args:
+        location: City name or geographic location
+        unit: Temperature unit (celsius or fahrenheit)
+    
+    Returns:
+        Weather information including temperature and conditions
+    """
     # In a real implementation, you would call a weather API
     return f"Weather for {location}: Sunny, 75°F"
 
-# Execute a tool
+# Execute a tool directly
 result = registry.execute_tool("get_weather", location="New York")
 print(result)  # Output: Weather for New York: Sunny, 75°F
 
-# Get OpenAI-compatible tool schemas
+# Get OpenAI-compatible function schemas for ChatGPT API
 schemas = registry.get_openai_schemas()
 ```
 
@@ -198,26 +217,38 @@ formatter = create_message_formatter("openai")
 openai_messages = formatter.format_messages(conversation)
 ```
 
-### 3. Integrating with AI Services
+### 3. Integrating with OpenAI and Other LLM Services
 
 ```python
 from ai_tools_core.services import get_openai_service, get_tool_service
+from ai_tools_core.usage import InMemoryUsageTracker
 
-# Get the OpenAI service
-openai_service = get_openai_service()
+# Create a usage tracker to monitor token consumption
+usage_tracker = InMemoryUsageTracker()
 
-# Generate a response
+# Get the OpenAI service with token tracking
+openai_service = get_openai_service(usage_tracker=usage_tracker)
+
+# Generate a response with GPT-4o or other models
 messages = [
     {"role": "system", "content": "You are a helpful assistant."},
     {"role": "user", "content": "Tell me a joke about programming."}
 ]
-response = openai_service.generate_response(messages)
+response = openai_service.generate_response(
+    messages,
+    user_id="user123",  # Optional tracking identifier
+    session_id="session456"  # Optional session tracking
+)
 print(response)
 
-# Process messages with tools
+# Process messages with OpenAI function calling
 tool_service = get_tool_service()
 tools = registry.get_openai_schemas()
 response = tool_service.process_with_tools(messages, tools)
+
+# Get token usage statistics
+usage_stats = usage_tracker.get_current_usage()
+print(f"Total tokens used: {usage_stats['total_tokens']}")
 ```
 
 ### 4. Example: Building a Telegram Bot
@@ -275,9 +306,53 @@ ai-tools-core/
     └── main.py           # Example application entry point
 ```
 
+## 📊 Token Usage Tracking and Billing
+
+AI Tools Core includes a flexible system for tracking token usage and integrating with your own billing systems:
+
+```python
+from ai_tools_core.usage import UsageTracker, UsageEvent
+from ai_tools_core.services import get_openai_service
+
+# Create a custom usage tracker for your billing system
+class MyBillingTracker(UsageTracker):
+    def track_usage(self, event: UsageEvent) -> None:
+        # Log the usage event
+        print(f"Model: {event.model}, Tokens: {event.input_tokens + event.output_tokens}")
+        print(f"Cost estimate: ${self.calculate_cost(event)}")
+        
+        # In a real implementation, you would store this in a database
+        # or send it to your billing service
+        
+    def calculate_cost(self, event: UsageEvent) -> float:
+        # Example pricing (adjust based on actual OpenAI pricing)
+        rates = {
+            "gpt-4o": {"input": 0.00001, "output": 0.00003},
+            "gpt-4o-mini": {"input": 0.000005, "output": 0.000015},
+        }
+        
+        model_rates = rates.get(event.model, rates["gpt-4o-mini"])
+        input_cost = event.input_tokens * model_rates["input"]
+        output_cost = event.output_tokens * model_rates["output"]
+        
+        return input_cost + output_cost
+        
+    def get_current_usage(self, **kwargs) -> dict:
+        # Return usage statistics
+        return {"total_tokens": 1000, "estimated_cost": 0.02}
+
+# Use your custom tracker with the OpenAI service
+tracker = MyBillingTracker()
+service = get_openai_service(usage_tracker=tracker)
+
+# Now all API calls will be tracked through your billing system
+```
+
 ## 📚 Learn More
 
 - [OpenAI Function Calling Documentation](https://platform.openai.com/docs/guides/function-calling)
+- [OpenAI API Reference](https://platform.openai.com/docs/api-reference)
+- [OpenAI Tokenizer](https://platform.openai.com/tokenizer)
 - [Telegram Bot API](https://core.telegram.org/bots/api)
 - [Python Telegram Bot Library](https://python-telegram-bot.readthedocs.io/)
 
@@ -321,6 +396,31 @@ If you encounter issues with the `ai-tools` command:
 ## 📄 License
 
 MIT
+
+## 🔍 SEO Keywords
+
+- OpenAI function calling Python
+- ChatGPT API toolkit
+- GPT-4 function calling implementation
+- LLM application framework
+- AI conversation management
+- OpenAI token usage tracking
+- AI tools registry Python
+- Telegram ChatGPT bot example
+- OpenAI API Python wrapper
+- AI development toolkit
+
+## 🎗️ Badge Information
+
+| Badge | Description |
+| ----- | ----------- |
+| [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/) | Indicates Python version compatibility |
+| [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) | Project is released under the MIT license |
+| [![PyPI version](https://badge.fury.io/py/ai-tools-core.svg)](https://badge.fury.io/py/ai-tools-core) | Current version on PyPI |
+| [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) | Code is formatted with Black (line length 120) |
+| [![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-brightgreen.svg)](https://conventionalcommits.org) | We use Conventional Commits format |
+| [![OpenAI API](https://img.shields.io/badge/OpenAI%20API-Compatible-brightgreen.svg)](https://platform.openai.com/) | Compatible with the latest OpenAI API |
+| [![Telegram Bot API](https://img.shields.io/badge/Telegram%20Bot%20API-Compatible-blue.svg)](https://core.telegram.org/bots/api) | Compatible with the Telegram Bot API |
 
 ---
 
