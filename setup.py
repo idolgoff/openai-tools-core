@@ -24,6 +24,7 @@ setup(
         "telegram": [
             "python-telegram-bot>=20.0",
         ],
+        "test": ["pytest", "pytest-cov"],
     },
     python_requires=">=3.8",
     classifiers=[
