@@ -19,11 +19,14 @@ logger = get_logger(__name__)
 class OpenAIMessageService:
     """Service for processing OpenAI-specific messages and tool calls."""
 
-    def __init__(self):
+    system_message: str = "You are an AI assistant"
+
+    def __init__(self, system_message: Optional[str] = None):
         """Initialize the message service."""
         # Explicitly use the OpenAI formatter for this service
         self.history_manager = get_history_manager(storage_type="file", formatter_type="openai")
         self.openai_service = get_openai_service()
+        self.system_message = system_message or self.system_message
         logger.info("OpenAI message service initialized")
 
     def create_or_get_conversation(
@@ -46,9 +49,7 @@ class OpenAIMessageService:
             self.history_manager.add_message(
                 conversation_id,
                 MessageRole.SYSTEM,
-                "You are an AI assistant that helps users manage projects. "
-                "Your task is to understand the user's intent and call the appropriate "
-                "function to handle their request.",
+                self.system_message
             )
 
             # Set context if provided
@@ -257,7 +258,7 @@ class OpenAIMessageService:
 _openai_message_service: Optional[OpenAIMessageService] = None
 
 
-def get_openai_message_service() -> OpenAIMessageService:
+def get_openai_message_service(system_message: Optional[str] = None) -> OpenAIMessageService:
     """
     Get the singleton message service instance.
 
@@ -267,7 +268,10 @@ def get_openai_message_service() -> OpenAIMessageService:
     global _openai_message_service
 
     if _openai_message_service is None:
-        _openai_message_service = OpenAIMessageService()
+        _openai_message_service = OpenAIMessageService(system_message=system_message)
+
+    if system_message is not None:
+        _openai_message_service.system_message = system_message
 
     return _openai_message_service
 

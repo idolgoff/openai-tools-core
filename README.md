@@ -2,7 +2,7 @@
 
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![PyPI version](https://badge.fury.io/py/ai-tools-core.svg)](https://badge.fury.io/py/ai-tools-core)
+[![PyPI version](https://img.shields.io/pypi/v/ai-tools-core.svg)](https://pypi.org/project/ai-tools-core/)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-brightgreen.svg)](https://conventionalcommits.org)
 [![OpenAI API](https://img.shields.io/badge/OpenAI%20API-Compatible-brightgreen.svg)](https://platform.openai.com/)
@@ -416,7 +416,7 @@ MIT
 | ----- | ----------- |
 | [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/) | Indicates Python version compatibility |
 | [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) | Project is released under the MIT license |
-| [![PyPI version](https://badge.fury.io/py/ai-tools-core.svg)](https://badge.fury.io/py/ai-tools-core) | Current version on PyPI |
+| [![PyPI version](https://img.shields.io/pypi/v/ai-tools-core.svg)](https://pypi.org/project/ai-tools-core/) | Current version on PyPI |
 | [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) | Code is formatted with Black (line length 120) |
 | [![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-brightgreen.svg)](https://conventionalcommits.org) | We use Conventional Commits format |
 | [![OpenAI API](https://img.shields.io/badge/OpenAI%20API-Compatible-brightgreen.svg)](https://platform.openai.com/) | Compatible with the latest OpenAI API |
