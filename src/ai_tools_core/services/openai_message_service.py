@@ -30,7 +30,11 @@ class OpenAIMessageService:
         logger.info("OpenAI message service initialized")
 
     def create_or_get_conversation(
-        self, user_id: str, conversation_id: Optional[str] = None, context: Optional[str] = None
+        self,
+        user_id: str,
+        conversation_id: Optional[str] = None,
+        context: Optional[str] = None,
+        system_message: Optional[str] = None,
     ) -> str:
         """
         Create a new conversation or get an existing one.
@@ -39,6 +43,7 @@ class OpenAIMessageService:
             user_id: ID of the user
             conversation_id: Optional ID of an existing conversation
             context: Optional context to set for the conversation
+            system_message: Optional system message to use for this conversation
 
         Returns:
             Conversation ID
@@ -46,15 +51,38 @@ class OpenAIMessageService:
         if not conversation_id:
             conversation_id = self.history_manager.create_conversation(user_id)
             # Add system message to set the context
-            self.history_manager.add_message(
-                conversation_id,
-                MessageRole.SYSTEM,
-                self.system_message
-            )
+            self.history_manager.add_message(conversation_id, MessageRole.SYSTEM, system_message or self.system_message)
 
             # Set context if provided
             if context:
                 self.set_conversation_context(conversation_id, context)
+        elif system_message is not None:
+            # Check if there's an existing system message and update it if different
+            messages = self.history_manager.get_messages(conversation_id)
+            system_message_found = False
+
+            for message in messages:
+                if message["role"] == "system":
+                    system_message_found = True
+                    # If the system message is different, replace it
+                    if message["content"] != system_message:
+                        # Remove the existing system message
+                        # We need to get the raw conversation to modify it
+                        conversation = self.history_manager.get_conversation(conversation_id)
+                        if conversation:
+                            # Find and remove the system message
+                            for i, msg in enumerate(conversation.messages):
+                                if msg.role == MessageRole.SYSTEM:
+                                    # Replace with the new system message
+                                    conversation.messages[i].content = system_message
+                                    # Save the updated conversation
+                                    self.history_manager.save_conversation(conversation)
+                                    break
+                    break
+
+            # If no system message was found, add one
+            if not system_message_found:
+                self.history_manager.add_message(conversation_id, MessageRole.SYSTEM, system_message)
 
         return conversation_id
 

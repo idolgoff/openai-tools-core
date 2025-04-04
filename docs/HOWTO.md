@@ -12,3 +12,15 @@ bump2version minor
 # For a major update (0.2.1 -> 1.0.0)
 bump2version major
 ```
+
+## Building the package
+
+```bash
+python -m build
+```
+
+## Publishing the package
+
+```bash
+python -m twine upload dist/*
+```
