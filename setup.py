@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="ai_tools_core",
-    version="0.3.0",
+    version="0.4.0",
     description="Core library for AI tools and integrations",
     author="idolgoff",
     packages=find_packages(where="src"),

@@ -4,7 +4,7 @@ This package provides core functionality for working with AI services,
 managing conversation history, and executing AI-powered tools.
 """
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 # Import key components to make them available at the package level
 from .tools import ToolRegistry
