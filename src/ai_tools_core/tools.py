@@ -29,12 +29,18 @@ class ToolRegistry:
     """Registry for AI tools.
 
     This class provides methods for registering, retrieving, and executing tools.
-    It also generates OpenAI-compatible tool schemas for the registered tools.
+    It also generates OpenAI-compatible tool schemas for the registered tools and
+    provides a default implementation for generating tool responses.
+
+    The registry supports two types of decorators:
+    1. @registry.register() - For registering tool functions
+    2. @registry.context_handler() - For registering context handlers for tool responses
     """
 
     def __init__(self):
         """Initialize the tool registry."""
         self._tools: Dict[str, Dict[str, Any]] = {}
+        self._context_handlers: Dict[str, Callable] = {}
 
     def register(self, name: Optional[str] = None, description: Optional[str] = None):
         """Decorator to register a function as a tool.
@@ -191,25 +197,122 @@ class ToolRegistry:
 
         return tool_func(**kwargs)
 
+    def generate_tool_response(
+        self, tool_name: str, args: Dict[str, Any], result: Optional[Any], conversation_id: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Generate a structured response for a tool execution.
+
+        This method provides a default implementation for generating tool responses.
+        Subclasses can override this method to provide custom response generation.
+
+        Args:
+            tool_name: Name of the executed tool
+            args: Tool arguments
+            result: Tool execution result
+            conversation_id: Optional ID of the conversation
+
+        Returns:
+            Dictionary with structured response data
+        """
+        # Base response structure
+        response = {
+            "tool": tool_name,
+            "status": "success" if result is not None else "error",
+            "data": result,
+            "args": args,
+        }
+
+        # Add additional context based on the tool if needed
+        # This is a hook for subclasses to add custom context
+        response["context"] = self._get_tool_context(tool_name, args, result)
+
+        return response
+
+    def context_handler(self, tool_name: str):
+        """Decorator to register a function as a context handler for a specific tool.
+
+        Context handlers are used to generate additional context for tool responses.
+        They receive the tool arguments and result, and return a dictionary with
+        additional context information.
+
+        Args:
+            tool_name: Name of the tool to handle context for
+
+        Returns:
+            Decorator function
+        """
+
+        def decorator(func: Callable[[Dict[str, Any], Any], Dict[str, Any]]) -> Callable:
+            self._context_handlers[tool_name] = func
+            logger.info(f"Registered context handler for tool: {tool_name}")
+            return func
+
+        return decorator
+
+    def _get_tool_context(self, tool_name: str, args: Dict[str, Any], result: Optional[Any]) -> Dict[str, Any]:
+        """Get additional context for a tool response.
+
+        This method checks if a context handler is registered for the tool and calls it.
+        If no handler is registered, it returns an empty dictionary.
+
+        Args:
+            tool_name: Name of the executed tool
+            args: Tool arguments
+            result: Tool execution result
+
+        Returns:
+            Dictionary with additional context
+        """
+        if tool_name in self._context_handlers:
+            try:
+                return self._context_handlers[tool_name](args, result) or {}
+            except Exception as e:
+                logger.error(f"Error in context handler for {tool_name}: {str(e)}")
+        return {}
+
 
 # Example usage of the ToolRegistry class:
 #
 # # Create a tool registry
 # tool_registry = ToolRegistry()
 #
-# # Register a tool
+# # Register tools
 # @tool_registry.register()
-# def example_tool(param1: str, param2: int = 0) -> str:
-#     """Example tool that demonstrates how to use the registry.
+# def create_project_tool(name: str, description: str) -> str:
+#     """Create a new project.
 #
 #     Args:
-#         param1: First parameter description
-#         param2: Second parameter description with default value
-#
-#     Returns:
-#         Result of the tool execution
+#         name: Project name
+#         description: Project description
 #     """
-#     return f"Executed example_tool with {param1} and {param2}"
+#     project_id = "123"  # In a real implementation, this would be generated
+#     return project_id
+#
+# @tool_registry.register()
+# def list_projects_tool() -> Optional[str]:
+#     """List all available projects."""
+#     return "Project 1\nProject 2\nProject 3"
+#
+# # Register context handlers for tools
+# @tool_registry.context_handler("create_project_tool")
+# def create_project_context(args: Dict[str, Any], result: Any) -> Dict[str, Any]:
+#     """Generate context for create_project_tool responses."""
+#     return {
+#         "action": "create",
+#         "entity": "project",
+#         "name": args.get("name"),
+#         "description": args.get("description"),
+#         "project_id": result,
+#     }
+#
+# @tool_registry.context_handler("list_projects_tool")
+# def list_projects_context(args: Dict[str, Any], result: Any) -> Dict[str, Any]:
+#     """Generate context for list_projects_tool responses."""
+#     return {
+#         "action": "list",
+#         "entity": "projects",
+#         "empty": result is None or result == "",
+#     }
 #
 # # Get all registered tools
 # tools = tool_registry.get_all_tools()
@@ -218,7 +321,29 @@ class ToolRegistry:
 # schemas = tool_registry.get_tool_schemas()
 #
 # # Execute a tool
-# result = tool_registry.execute_tool("example_tool", param1="test", param2=42)
+# result = tool_registry.execute_tool("create_project_tool", name="My Project", description="A test project")
+#
+# # Generate a response for the tool execution
+# response = tool_registry.generate_tool_response(
+#     "create_project_tool",
+#     {"name": "My Project", "description": "A test project"},
+#     result
+# )
+#
+# # The response will include the context from the registered handler:
+# # {
+# #     "tool": "create_project_tool",
+# #     "status": "success",
+# #     "data": "123",
+# #     "args": {"name": "My Project", "description": "A test project"},
+# #     "context": {
+# #         "action": "create",
+# #         "entity": "project",
+# #         "name": "My Project",
+# #         "description": "A test project",
+# #         "project_id": "123"
+# #     }
+# # }
 
 
 # The following functions can be used as convenience functions when a global registry is created
